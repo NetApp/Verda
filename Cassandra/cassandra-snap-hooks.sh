@@ -1,0 +1,110 @@
+#!/bin/sh
+#
+
+# cassandra-snap-hooks.sh
+#
+# Pre- and post-snapshot execution hooks for Cassandra.
+#
+# args: [pre|post]
+# pre: flush all keyspaces and tables by "nodetool flush"
+# post: check all tables ("nodetool verify")
+#
+# The current version of Astra Control can only target the containers to execute hooks by image name. The hook will run for any container image that matches the provided regular
+# expression rule in Astra Control.
+
+# unique error codes for every error case
+ebase=100
+eusage=$((ebase+1))
+ebadstage=$((ebase+2))
+epre=$((ebase+3))
+epost=$((ebase+4))
+
+#
+# Writes the given message to standard output
+#
+# $* - The message to write
+#
+msg() {
+    echo "$*"
+}
+
+#
+# Writes the given information message to standard output
+#
+# $* - The message to write
+#
+info() {
+    msg "INFO: $*"
+}
+
+#
+# Writes the given error message to standard error
+#
+# $* - The message to write
+#
+error() {
+    msg "ERROR: $*" 1>&2
+}
+
+#
+# Run quiesce steps here
+#
+quiesce() {
+    info "Quiescing Cassandra - flushing all keyspaces and tables"
+    nodetool flush
+    rc=$?
+    if [ ${rc} -ne 0 ]; then
+        rc=${epre}
+    fi
+    return ${rc}
+}
+
+#
+# Run unquiesce steps here
+#
+unquiesce() {
+    info "Unquiescing Cassandra"
+    nodetool verify
+    rc=$?
+    if [ ${rc} -ne 0 ]; then
+        rc=${epost}
+    fi
+    return ${rc}
+}
+
+#
+# main
+#
+
+# check arg
+stage=$1
+if [ -z "${stage}" ]; then
+    echo "Usage: $0 <pre|post>"
+    exit ${eusage}
+fi
+
+if [ "${stage}" != "pre" ] && [ "${stage}" != "post" ]; then
+    echo "Invalid arg: ${stage}"
+    exit ${ebadstage}
+fi
+
+# log something to stdout
+info "Running $0 ${stage}"
+
+if [ "${stage}" = "pre" ]; then
+    quiesce
+    rc=$?
+    if [ ${rc} -ne 0 ]; then
+        error "Error during pre-snapshot hook"
+    fi
+fi
+
+if [ "${stage}" = "post" ]; then
+    unquiesce
+    rc=$?
+    if [ ${rc} -ne 0 ]; then
+        error "Error during post-snapshot hook"
+    fi
+fi
+
+exit ${rc}
