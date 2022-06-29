@@ -4,6 +4,7 @@
 # elasticsearch-snap-restore-hooks.sh
 #
 # Pre- and post-snapshot and post-restore execution hooks for Elasticsearch.
+# Tested with Elasticsearch 8.2.3 (deployed by Bitnami helm chart 18.2.13) and NetApp Astra Control Service 22.04.
 #
 # args: [pre|post|postrestore]
 # pre: Flush all Elasticsearch indices and make indices and index metadata read-only by setting index.blocks.read_only

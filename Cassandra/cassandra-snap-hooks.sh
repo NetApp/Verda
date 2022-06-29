@@ -4,6 +4,7 @@
 # cassandra-snap-hooks.sh
 #
 # Pre- and post-snapshot execution hooks for Cassandra.
+# Tested with Cassandra 4.0.4 (deployed by Bitnami helm chart 9.2.5) and NetApp Astra Control Service 22.04.
 #
 # args: [pre|post]
 # pre: flush all keyspaces and tables by "nodetool flush"

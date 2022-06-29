@@ -3,8 +3,8 @@
 # mariadb_mysql.sh
 #
 #
-# Pre- and post-snapshot and post-restore execution hooks for MariaDB and MySQL with NetApp Astra Control.
-# Tested with MySQL 8.0.29 (deployed by Bitnami helm chart 9.1.7)/MariDB 10.6.8 (deployed by Bitnami helm chart 11.0.13) and NetApp Astra Control Service 22.04.
+# Pre- and post-snapshot execution hooks for MariaDB and MySQL with NetApp Astra Control.
+# Tested with MySQL 8.0.29 (deployed by Bitnami helm chart 9.1.7)/MariaDB 10.6.8 (deployed by Bitnami helm chart 11.0.13) and NetApp Astra Control Service 22.04.
 #
 # args: [pre|post]
 # pre: Flush all tables with read lock
