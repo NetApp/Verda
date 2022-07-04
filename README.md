@@ -1,2 +1,102 @@
-# execution-hooks
-This repository contains execution hooks to be used with Astra Control for popular Kubernetes applications.
+# Execution Hooks with Astra Control
+
+An execution hook is a custom script that you can run before or after a snapshot of a managed app in Astra Control, or after a restore of an application. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
+
+## Execution Hook Actions and Stages
+
+| Action/Operation | Supported Stages |               Notes                    |
+| -----------------|------------------|----------------------------------------|
+| Snapshot         | Pre/Post         |                                        |
+| Backup           | Pre/Post-Backup  |                                        |
+| Restore          | Post-Restore     |Pre-restore is not needed and supported |
+
+## Adding an Execution Hook
+
+* Discover your Kubernetes cluster.
+* Manage the desired application.
+* Once the application is managed, select the "Execution hooks" tab.
+* Add the execution hook.
+* Trigger the execution hook by performing an operation (snapshot, backup, restore).
+* Verify it's execution in the Activity Window of Astra Control.
+
+## Troubleshooting failures
+
+If the execution of a hook fails, the return code is captured and is included in the hook failure event. This is also captured in Astra Control's Activity.
+If a hook script fails, the script's stderr/stdout output is logged in the Nautilus logs. It is important to note that execution hook failures are soft.
+The failure does NOT cause the operation to be tagged as a failure.
+
+## Notes about execution hooks
+
+Consider the following when planning execution hooks for your apps.
+
+ * Astra Control requires execution hooks to be written in the format of executable shell scripts.
+
+ * Script size is limited to 128KB.
+
+ *  Astra Control uses execution hook settings and any matching criteria to determine which hooks are applicable to a snapshot or restore.
+    All execution hook failures are soft failures; other hooks and the snapshot/restore are still attempted even if a hook fails. However, when a hook fails, a warning event is recorded in the Activity page event log.
+
+ *  To create, edit, or delete execution hooks, you must be a Astra Control user with Owner, Admin, or Member permissions.
+
+ *  If an execution hook takes longer than 25 minutes to run, the hook will fail, creating an event log entry with a return code of "N/A". Any affected snapshot will time out and be marked as failed, with a resulting event log entry noting the timeout.
+
+    - Since execution hooks often reduce or completely disable the functionality of the application they are running against, you should always try to minimize the time your custom execution hooks take to run.
+
+ *  The current version of Astra Control can only target the containers to execute hooks by image name. The hook will run for any container image that matches the provided regular expression rule in Astra Control., which can result a hooks script being executed multiple times in parallel for the same application. Take this into consideration when developing hook scripts.      
+
+ When a snapshot is run, execution hook events take place in the following order:
+
+  -   Any applicable custom pre-snapshot execution hooks are run on the appropriate containers. You can create and run as many custom pre-snapshot hooks as you need, but the order of execution of these hooks before the snapshot is neither guaranteed nor configurable.
+
+  -   The snapshot is performed.
+
+  -   Any applicable custom post-snapshot execution hooks are run on the appropriate containers. You can create and run as many custom post-snapshot hooks as you need, but the order of execution of these hooks after the snapshot is neither guaranteed nor configurable.
+
+  -   Any applicable NetApp-provided default post-snapshot execution hooks are run on the appropriate containers.
+
+Always test your execution hook scripts before enabling them in a production environment. You can use the 'kubectl exec' command to conveniently test the scripts.  
+
+To do so, first upload the hook script you want to test into the pod where it’s supposed to run and then execute like, like in the example below:
+
+```
+~ # kubectl cp cassandra-snap-hooks.sh cassandra-0:/tmp -n cassandra
+~ # kubectl exec -n cassandra --stdin --tty pod/cassandra-0 -- /bin/bash -c  “ls -l /tmp/cassandra*”
+total 416
+-rw-r--r-- 1 1001 root 2288 Jun 29 07:27 cassandra-snap-hooks.sh
+~ # kubectl exec -n cassandra --stdin --tty pod/cassandra-0 -- /bin/bash -c "/bin/sh -x /tmp/cassandra-snap-hooks.sh pre"
++ ebase=100
++ eusage=101
++ ebadstage=102
++ epre=103
++ epost=104
++ stage=pre
++ [ -z pre ]
++ [ pre != pre ]
++ info Running /tmp/cassandra-snap-hooks.sh pre
++ msg INFO: Running /tmp/cassandra-snap-hooks.sh pre
++ echo INFO: Running /tmp/cassandra-snap-hooks.sh pre
+INFO: Running /tmp/cassandra-snap-hooks.sh pre
++ [ pre = pre ]
++ quiesce
++ info Quiescing Cassandra - flushing all keyspaces and tables
++ msg INFO: Quiescing Cassandra - flushing all keyspaces and tables
++ echo INFO: Quiescing Cassandra - flushing all keyspaces and tables
+INFO: Quiescing Cassandra - flushing all keyspaces and tables
++ nodetool flush
++ rc=0
++ [ 0 -ne 0 ]
++ return 0
++ rc=0
++ [ 0 -ne 0 ]
++ [ pre = post ]
++ exit 0
+```
+
+After you enable the execution hooks in a production environment, test the resulting snapshots to ensure they are consistent. You can do this by cloning the app to a temporary namespace, restoring the snapshot, and then testing the app.
+
+Execution hooks are available for the following applications:
+
+* Cassandra
+* Elasticsearch
+* MariaDB & MySQL
+* PostgreSQL
