@@ -1,6 +1,10 @@
 # Execution Hooks with Astra Control
 
+This repository provides a collection of execution hooks for common applications that make application protection more robust and easier to implement.
+
 An execution hook is a custom script that you can run before or after a snapshot of a managed app in Astra Control, or after a restore of an application. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
+
+The execution hooks provided in this repo are provided under Community Support. Readers are advised to test them in staging environments before using in production.
 
 ## Execution Hook Actions and Stages
 
@@ -17,7 +21,7 @@ An execution hook is a custom script that you can run before or after a snapshot
 * Once the application is managed, select the "Execution hooks" tab.
 * Add the execution hook.
 * Trigger the execution hook by performing an operation (snapshot, backup, restore).
-* Verify it's execution in the Activity Window of Astra Control.
+* Verify its execution in the Activity Window of Astra Control.
 
 ## Troubleshooting failures
 
