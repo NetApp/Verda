@@ -104,3 +104,4 @@ Execution hooks are available for the following applications:
 * Elasticsearch
 * MariaDB & MySQL
 * PostgreSQL
+* Redis
