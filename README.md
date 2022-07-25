@@ -1,4 +1,4 @@
-# Ancora - Protecting applications with Astra Control
+# Verda - Protecting applications with Astra Control
 
 This repo provides guidance on protecting popular Kubernetes applications with NetApp Astra Control by taking app-consistent snapshots and backups.
 
