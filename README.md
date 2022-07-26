@@ -1,10 +1,25 @@
-# Execution Hooks with Astra Control
+# Ancora - Protecting applications with Astra Control
 
-This repository provides a collection of execution hooks for common applications that make application protection more robust and easier to implement.
+This repo provides guidance on protecting popular Kubernetes applications with NetApp Astra Control by taking app-consistent snapshots and backups.
 
-An execution hook is a custom script that you can run before or after a snapshot of a managed app in Astra Control, or after a restore of an application. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
+A snapshot is a point-in-time copy of an app that is stored on the volume used by the app. Snapshots are used to restore the state of an app.
 
-The execution hooks provided in this repo are provided under Community Support. Readers are advised to test them in staging environments before using in production.
+Astra also allows users to create app backups. A backup is stored on object storage in the cloud. A backup can be slower to create when compared to snapshots. They can be accessed across regions in the cloud to enable app migrations. You can also choose a longer retention period for backups.
+
+Some applications might require app-specific steps to be performed. This could be:
+* before or after a snapshot is created.
+* before or after a backup is created.
+* after restoring from a snapshot or backup.
+
+Astra Control can execute app-specific custom scripts called execution hooks.
+
+An execution hook is a custom script that you can be executed when snapshots or backups are created for an app managed by Astra Control. Execution hooks can also be used during app restores. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
+
+This repo provides execution hook examples for popular applications to make protecting applications simpler, more robust, and easy to orchestrate.
+
+Furthermore, the repo provides shell script templates to write your own execution hooks.
+
+The execution hooks provided in this repo are provided under **Community Support**. Readers are advised to test them in staging environments before using in production.
 
 ## Execution Hook Actions and Stages
 
@@ -25,9 +40,9 @@ The execution hooks provided in this repo are provided under Community Support. 
 
 ## Troubleshooting failures
 
-If the execution of a hook fails, the return code is captured and is included in the hook failure event. This is also captured in Astra Control's Activity.
-If a hook script fails, the script's stderr/stdout output is logged in the Nautilus logs. It is important to note that execution hook failures are soft.
-The failure does NOT cause the operation to be tagged as a failure.
+* If the execution of a hook fails, the return code is captured and is included in the hook failure event. This is also captured in Astra Control's Activity.
+* If a hook script fails, the script's stderr/stdout output is logged in the Nautilus logs. It is important to note that execution hook failures are soft.
+* The failure does NOT cause the operation to be tagged as a failure.
 
 ## Notes about execution hooks
 
@@ -100,7 +115,9 @@ After you enable the execution hooks in a production environment, test the resul
 
 Execution hooks are available for the following applications:
 
-* Cassandra
-* Elasticsearch
-* MariaDB & MySQL
-* PostgreSQL
+* [Cassandra](https://github.com/NetApp/execution-hooks/tree/main/Cassandra)
+* [Elasticsearch](https://github.com/NetApp/execution-hooks/tree/main/Elasticsearch)
+* [MariaDB & MySQL](https://github.com/NetApp/execution-hooks/tree/main/Mariadb-MySQL)
+* [MongoDB](https://github.com/NetApp/execution-hooks/tree/main/MongoDB)
+* [PostgreSQL](https://github.com/NetApp/execution-hooks/tree/main/PostgreSQL)
+* [Redis](https://github.com/NetApp/execution-hooks/tree/main/Redis)
