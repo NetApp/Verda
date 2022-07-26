@@ -1,10 +1,10 @@
-# Verda - Protecting applications with Astra Control
+# Verda - Protecting popular cloud-native K8s applications with Astra Control
 
-This repo provides guidance on protecting popular Kubernetes applications with NetApp Astra Control by taking app-consistent snapshots and backups.
+This project aims to help users protect popular Kubernetes applications with NetApp Astra Control by taking app-consistent snapshots, backups, and other techniques.
 
 A snapshot is a consistent point-in-time copy of an app that is stored on the volume used by the app. Snapshots are used to restore the state of an app.
 
-Astra also allows users to create app backups. A backup is stored on object storage in the cloud. A backup can be slower to create when compared to snapshots. They can be accessed across regions in the cloud to enable app migrations. You can also choose a longer retention period for backups.
+Astra Control also allows you to take backups for an offsite copy of your application and its data. A backup can be slower to create when compared to snapshots. Backups can be accessed across data centers and cloud regions to enable disaster recovery and app migrations. You can also choose a longer retention period for backups.
 
 Some applications might require app-specific steps to be performed. This could be:
 * before or after a snapshot is created.
@@ -13,7 +13,7 @@ Some applications might require app-specific steps to be performed. This could b
 
 Astra Control can execute app-specific custom scripts called execution hooks.
 
-An execution hook is a custom script that you can be executed when snapshots or backups are created for an app managed by Astra Control. Execution hooks can also be used during app restores. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
+An execution hook is a custom action coded as a script that can be executed when snapshots or backups are created for an app managed by Astra Control. Execution hooks can also be used during app restores. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
 
 This repo provides execution hook examples for popular cloud-native applications to make protecting applications straightforward, robust, and easy to orchestrate.
 
