@@ -73,7 +73,11 @@ unquiesce() {
     curl -H'Content-Type: application/json' -XPUT localhost:9200/_settings?pretty -d'{"index": {"blocks.read_only": false} }'
     rc=$?
     if [ ${rc} -ne 0 ]; then
-        rc=${epost}
+        if [ ${stage} = "post" ]; then
+          rc=${epost}
+        else
+          rc=${epostrestore}
+        fi
     fi
     return ${rc}
 }
