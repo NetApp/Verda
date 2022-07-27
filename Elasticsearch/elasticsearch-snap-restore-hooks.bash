@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 
 # elasticsearch-snap-restore-hooks.sh
@@ -9,7 +9,7 @@
 # args: [pre|post|postrestore]
 # pre: Flush all Elasticsearch indices and make indices and index metadata read-only by setting index.blocks.read_only
 # post: Unset index.blocks.read_only from all indices
-# postrestore: Unset index.blocks.read_only from all indices
+# postrestore: Wait for Elasticsearch cluster to become ready and unset index.blocks.read_only from all indices
 #
 # After a restore, the postrestore action MUST be executed to make sure index.blocks.read_only is set to false for all indices.
 #
@@ -24,6 +24,10 @@ ebadstage=$((ebase+2))
 epre=$((ebase+3))
 epost=$((ebase+4))
 epostrestore=$((ebase+5))
+epostrestore-esnotready=$((ebase+6))
+
+# How many mins to wait for ES to become ready:
+let max_wait_minutes=5
 
 #
 # Writes the given message to standard output
@@ -50,6 +54,26 @@ info() {
 #
 error() {
     msg "ERROR: $*" 1>&2
+}
+
+#
+# Get status of ES cluster and wait until it's "green"
+#
+wait_es_green() {
+  info "Waiting for Elasticsearch to become ready"
+  sleep 60
+  let i=1
+  es_state=$(curl -X GET "localhost:9200/_cluster/health?local=true&pretty" | awk -F: '/status/ {print $2}' | awk -F\" '{print $2}')
+  while [ ${es_state} != "green" ]; do
+    sleep 60
+    if (( $i > $max_wait_minutes )); then
+      info "Waited to long for Elastisearch to become ready, aborting"
+      exit ${epostrestore-esnotready}
+    fi
+    info "Waiting for Elasticsearch to become ready, waited already ${i} mins, one more minute"
+    (( i++ ))
+  done
+  info "Elastisearch is ready"
 }
 
 #
@@ -118,6 +142,8 @@ if [ "${stage}" = "post" ]; then
 fi
 
 if [ "${stage}" = "postrestore" ]; then
+    # wait a minute...
+    wait_es_green
     unquiesce
     rc=$?
     if [ ${rc} -ne 0 ]; then
