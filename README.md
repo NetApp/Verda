@@ -2,7 +2,7 @@
 
 This repo provides guidance on protecting popular Kubernetes applications with NetApp Astra Control by taking app-consistent snapshots and backups.
 
-A snapshot is a point-in-time copy of an app that is stored on the volume used by the app. Snapshots are used to restore the state of an app.
+A snapshot is a consistent point-in-time copy of an app that is stored on the volume used by the app. Snapshots are used to restore the state of an app.
 
 Astra also allows users to create app backups. A backup is stored on object storage in the cloud. A backup can be slower to create when compared to snapshots. They can be accessed across regions in the cloud to enable app migrations. You can also choose a longer retention period for backups.
 
@@ -15,7 +15,7 @@ Astra Control can execute app-specific custom scripts called execution hooks.
 
 An execution hook is a custom script that you can be executed when snapshots or backups are created for an app managed by Astra Control. Execution hooks can also be used during app restores. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
 
-This repo provides execution hook examples for popular applications to make protecting applications simpler, more robust, and easy to orchestrate.
+This repo provides execution hook examples for popular cloud-native applications to make protecting applications straightforward, robust, and easy to orchestrate.
 
 Furthermore, the repo provides shell script templates to write your own execution hooks.
 
