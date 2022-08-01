@@ -21,6 +21,8 @@ Furthermore, the repo provides shell script templates to write your own executio
 
 The execution hooks provided in this repo are provided under **Community Support**. Readers are advised to test them in staging environments before using in production.
 
+User contributions are welcome! Take a look at the [Contribution Guide](#contribution-guide) to get started.
+
 ## Execution Hook Actions and Stages
 
 | Action/Operation | Supported Stages |               Notes                    |
@@ -133,7 +135,7 @@ Consider the following when planning execution hooks for your apps.
 
 After you enable the execution hooks in a production environment, test the resulting snapshots to ensure they are consistent. You can do this by cloning the app to a temporary namespace, restoring the snapshot, and then testing the app.
 
-Execution hooks are available for the following applications:
+Protection strategies are available for the following applications:
 
 * [Cassandra](https://github.com/NetApp/execution-hooks/tree/main/Cassandra)
 * [Elasticsearch](https://github.com/NetApp/execution-hooks/tree/main/Elasticsearch)
@@ -142,3 +144,13 @@ Execution hooks are available for the following applications:
 * [PostgreSQL](https://github.com/NetApp/execution-hooks/tree/main/PostgreSQL)
 * [Redis](https://github.com/NetApp/execution-hooks/tree/main/Redis)
 * [Kafka](https://github.com/NetApp/execution-hooks/tree/main/Kafka)
+
+## Contribution Guide
+
+If you would like to add execution hooks/protection guidelines for an application to this repository:
+
+1. Create a new branch from `main`.
+2. Switch over to your newly created branch and create a new folder for the desired application.
+3. Add the execution hook/protection guide.
+4. Open a Pull Request. When creating it, please make sure to provide details on the application. This could be the way it is installed, architectural configuration (single master or multiple masters, for example), and so on.
+5. Once a Pull Request is created, the proposed contribution can be tested and reviewed.
