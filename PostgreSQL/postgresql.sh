@@ -212,7 +212,7 @@ EOSQL
 #
 kill_all_sleepers() {
     sleeping_pids=$(get_sleeping_pids)
-    if ["${sleeping_pids}" == ""]; then
+    if [ "${sleeping_pids}" == "" ]; then
       error "no sleepers found"
       return ${enosleepersfound}
     fi
