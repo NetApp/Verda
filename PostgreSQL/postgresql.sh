@@ -3,7 +3,7 @@
 # postgresql.sh
 #
 #
-# Pre- and post-snapshot and post-restore execution hooks for Elasticsearch with NetApp Astra Control.
+# Pre- and post-snapshot and post-restore execution hooks for PostgreSQL with NetApp Astra Control.
 # Tested with PostgreSQL 14.4.0 deployed by Bitnami helm chart 11.6.7 and NetApp Astra Control Service 22.04.
 #
 # args: [pre|post]
