@@ -24,10 +24,11 @@ ebadstage=$((ebase+2))
 epre=$((ebase+3))
 epost=$((ebase+4))
 epostrestore=$((ebase+5))
-epostrestore-esnotready=$((ebase+6))
+epostrestore_esnotready=$((ebase+6))
+echo $
 
 # How many mins to wait for ES to become ready:
-let max_wait_minutes=5
+let max_wait_minutes=10
 
 #
 # Writes the given message to standard output
@@ -67,8 +68,8 @@ wait_es_green() {
   while [ ${es_state} != "green" ]; do
     sleep 60
     if (( $i > $max_wait_minutes )); then
-      info "Waited to long for Elastisearch to become ready, aborting"
-      exit ${epostrestore-esnotready}
+      info "Waited too long for Elastisearch to become ready, aborting"
+      exit ${epostrestore_esnotready}
     fi
     info "Waiting for Elasticsearch to become ready, waited already ${i} mins, one more minute"
     (( i++ ))
