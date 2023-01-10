@@ -2,7 +2,7 @@
 
 Pre- and post-snapshot and post-restore execution hooks for Elasticsearch.
 
-Tested with: MySQL 8.0.29 (deployed by Bitnami helm chart 9.1.7)/MariaDB 10.6.8 (deployed by Bitnami helm chart 11.0.13) and NetApp Astra Control Service 22.04.
+Tested with Elasticsearch 8.2.3 (deployed by Bitnami helm chart 18.2.13) and NetApp Astra Control Service 22.04.
 
 args: [pre|post|postrestore]
 
