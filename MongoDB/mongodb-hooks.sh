@@ -6,8 +6,7 @@
 # args: [pre|post]
 # pre: Performs a lock operation of the MongoDB instance using db.fsyncLock(). This flushes all write operations to the PVC and prevents additional writes by locking MongoDB.
 # post: Unlock MongoDB instance. Runs db.fsyncUnlock()
-# The current version of Astra Control uses the name of the container image to target pod(s) the execution hook runs on. Hence, this hook is recommended for non-sharded MongoDB instances.
-
+#
 # error codes
 ebase=100
 eusage=$((ebase+1))
