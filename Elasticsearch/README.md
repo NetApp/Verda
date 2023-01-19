@@ -24,5 +24,3 @@ postrestore: Unset index.blocks.read_only from all indices
 ## Notes
 
 After a restore, the post-restore action MUST be executed to make sure `index.blocks.read_only` is set to `false` for all indices of the restored Elasticsearch application.
-
-The current version of Astra Control can only target the containers to execute hooks by image name. The hook will run for any container image that matches the provided regular expression rule in Astra Control.
