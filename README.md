@@ -144,6 +144,8 @@ Protection strategies are available for the following applications:
 * [PostgreSQL](https://github.com/NetApp/execution-hooks/tree/main/PostgreSQL)
 * [Redis](https://github.com/NetApp/execution-hooks/tree/main/Redis)
 * [Kafka](https://github.com/NetApp/execution-hooks/tree/main/Kafka)
+* [YugabyteDB](https://github.com/NetApp/Verda/tree/main/YugabyteDB)
+* [Microsoft SQL Server](https://github.com/NetApp/Verda/tree/main/SQLServer2022)
 
 ## Contribution Guide
 
