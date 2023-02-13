@@ -15,13 +15,13 @@ The arguments are explained below:
 
 pre: invokes a pre-snapshot operation.
 
-`<master-addresses>`: A comma-separated list of master IP addresses. Example: "10.240.0.195,10.240.0.141,10.240.0.38"
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`<master-addresses>`: A comma-separated list of master IP addresses. Example: "10.240.0.195,10.240.0.141,10.240.0.38"
 
-`<db-name>`: The name of the database.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`<db-name>`: The name of the database.
 
 post: invokes a post-restore operation.
 
-`<yugabyte-snapshot-UUID>`: The unique identifier of the YugabyteDB snapshot that must be restored.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`<yugabyte-snapshot-UUID>`: The unique identifier of the YugabyteDB snapshot that must be restored.
 
 
 | Action/Operation | Supported Stages |               Notes                                        |
