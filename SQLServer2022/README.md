@@ -22,4 +22,4 @@ postrestore: Sets all user databases READ_WRITE again
 
 ## Notes
 
-After a restore, the post-restore action MUST be executed to make sure the user databasesjj are writeable.
+After a restore, the post-restore action MUST be executed to make sure the user databases are writeable.
