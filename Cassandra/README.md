@@ -22,5 +22,3 @@ post: check all tables ("nodetool verify")
 ## Notes
 
 A restore operation to a new namespace or cluster requires that the original instance of the Cassandra application to be taken down. This is to ensure that the peer group information carried over does not lead to cross-instance communication. Cloning of the app will not work.
-
-The current version of Astra Control can only target the containers to execute hooks by image name. The hook will run for any container image that matches the provided regular expression rule in Astra Control.

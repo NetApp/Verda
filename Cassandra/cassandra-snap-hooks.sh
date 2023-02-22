@@ -10,9 +10,6 @@
 # pre: flush all keyspaces and tables by "nodetool flush"
 # post: check all tables ("nodetool verify")
 #
-# The current version of Astra Control can only target the containers to execute hooks by image name. The hook will run for any container image 
-# that matches the provided regular expression rule in Astra Control.
-#
 # A restore operation to a new namespace or cluster requires that the original instance of the application to be taken down. This is to ensure 
 # that the peer group information carried over does not lead to cross-instance communication. Cloning of the app will not work.
 

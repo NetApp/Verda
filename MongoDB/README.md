@@ -17,8 +17,3 @@ post: Unlock database with fsyncUnlock()
 | Backup           | ---              |                                               |
 |                  | ---              |                                               |
 | Restore          | ---              |                                               |
-
-
-## Notes
-
-The current version of Astra Control can only target the containers to execute hooks by image name. The hook will run for any container image that matches the provided regular expression rule in Astra Control.
