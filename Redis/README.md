@@ -1,22 +1,23 @@
 # Redis
 
-A pre-snapshot execution hook that can be used with Redis and NetApp Astra Control.
+Pre-and post-snapshot execution hooks that can be used with Redis and NetApp Astra Control.
 
-Tested with Redis version 6.2.7 deployed using Bitnami Helm chart version 16.8.9 and NetApp Astra Control Service 22.04.
+Tested with Redis version 7.0.10 deployed using Bitnami Helm chart version 17.0.10 and NetApp Astra Control Service 23.10.
 
-args: [pre]
+args: [pre|post]
 
-pre: Save the contents of the Redis database by running a background save (BGSAVE).
-
-When creating an app snapshot, the pre-snapshot execution hook creates a `dump.rdb`
-file that is stored in the Redis directory (`/data`).
-
-Restoring a Redis database can be achieved by copying the `dump.rdb` file to the
-Redis directory and restarting the Redis instance.
+pre: For persistence mode RDB, run BGSAVE command creating dump.rdb in Redis data directory. For persistence mode AOF,
+turn off automatic rewrites (set auto-aof-rewrite-percentage 0).
+post: For persistence mode RDB, delete dump.rdb in Redis data directory. For persistence mode AOF,turn on automatic rewrites again 
+(set auto-aof-rewrite-percentage to original value)
 
 | Action/Operation | Supported Stages |               Notes                              |
 | -----------------|------------------|--------------------------------------------------|
-| Snapshot         | pre              | Runs BGSAVE and creates a dump.rdb file          |
+| Snapshot         | pre              | Action depending on Redis persistence mode       |
+|                  | post             | Action depending on Redis persistence mode       |
 | Backup           | ---              |                                                  |
 |                  | ---              |                                                  |
-| Restore          | ---              | Manually copy dump.rdb file to config directory  |
+| Restore          | ---              |                                                  |
+
+## Notes
+The execution hook script must be executed in the redis-master pod.
