@@ -4,7 +4,7 @@
 # elasticsearch-snap-restore-hooks.sh
 #
 # Pre- and post-snapshot and post-restore execution hooks for Elasticsearch.
-# Tested with Elasticsearch 8.2.3 (deployed by Bitnami helm chart 18.2.13) and NetApp Astra Control Service 22.04.
+# Tested with Elasticsearch 8.6.2 (deployed by Bitnami helm chart 19.6.0) and NetApp Astra Control Service 23.04.
 #
 # args: [pre|post|postrestore]
 # pre: Flush all Elasticsearch indices and make indices and index metadata read-only by setting index.blocks.read_only
@@ -22,7 +22,7 @@ epre=$((ebase+3))
 epost=$((ebase+4))
 epostrestore=$((ebase+5))
 epostrestore_esnotready=$((ebase+6))
-echo $
+eindexcount=$((ebase+7))
 
 # How many mins to wait for ES to become ready:
 let max_wait_minutes=10
@@ -75,6 +75,21 @@ wait_es_green() {
 }
 
 #
+# Get number of indices
+#
+get_index_count() {
+  info "Getting number of indices"
+  let index_count=$(curl -X GET "localhost:9200/_cat/indices/*?v=true&s=index&pretty" | wc -l)
+  rc=$?
+  if [ ${rc} -ne 0 ]; then
+    rc=${eindexcount}
+  fi
+  (( index_count-- ))
+  info "Number of indices: $index_count"
+  return ${rc}
+}
+
+#
 # Run quiesce steps here
 #
 quiesce() {
@@ -111,14 +126,22 @@ unquiesce() {
 # check arg
 stage=$1
 if [ -z "${stage}" ]; then
-    echo "Usage: $0 <pre|post|postrestore>"
+    error "Usage: $0 <pre|post|postrestore>"
     exit ${eusage}
 fi
 
 if [ "${stage}" != "pre" ] && [ "${stage}" != "post" ] && [ "${stage}" != "postrestore" ]; then
-    echo "Invalid arg: ${stage}"
+    error "Invalid arg: ${stage}"
     exit ${ebadstage}
 fi
+
+get_index_count
+if (( ${index_count} == 0 )); then
+  info "No indices present - nothing to do"
+  rc=0
+  exit $rc
+fi
+
 
 # log something to stdout
 info "Running $0 ${stage}"
