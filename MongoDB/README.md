@@ -2,7 +2,7 @@
 
 Pre- and post-snapshot execution hooks for MongoDB.
 
-Tested with: Cassandra 5.0.8 (deployed by Bitnami helm chart) and NetApp Astra Control Service 22.04.
+Tested with: MongoDB 5.0.8 (deployed by Bitnami helm chart) and NetApp Astra Control Service 22.04.
 
 args: [pre|post]
 
