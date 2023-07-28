@@ -10,6 +10,7 @@ Some applications might require app-specific steps to be performed. This could b
 * before or after a snapshot is created.
 * before or after a backup is created.
 * after restoring from a snapshot or backup.
+* after a failover of an application (Astra Control Center with replication only).
 
 Astra Control can execute app-specific custom scripts called execution hooks.
 
@@ -30,6 +31,7 @@ User contributions are welcome! Take a look at the [Contribution Guide](#contrib
 | Snapshot         | Pre/Post         |                                        |
 | Backup           | Pre/Post-Backup  |                                        |
 | Restore          | Post-Restore     |Pre-restore is not needed and supported |
+| Failover         | Post-failover    |ACC with replication only
 
 ## Adding an Execution Hook
 
@@ -147,6 +149,8 @@ Protection strategies are available for the following applications:
 * [Kafka](https://github.com/NetApp/execution-hooks/tree/main/Kafka)
 * [YugabyteDB](https://github.com/NetApp/Verda/tree/main/YugabyteDB)
 * [Microsoft SQL Server](https://github.com/NetApp/Verda/tree/main/SQLServer2022)
+
+[URL-Rewrite](https://github.com/NetApp/Verda/tree/main/URL-Rewrite) is a post-restore execution hook to change the container image URL from region A to region B (and/or B to A) after a restore. This is intended for use in situations where container registries are regional, and the original region is no longer available due to a DR scenario. The hook can be modified to change other settings after a restore like Ingress.
 
 ## Contribution Guide
 
