@@ -12,7 +12,7 @@ post: invokes a post-restore operation.
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`<deployment>`: Deployment to scale up or down
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`<regionB>`: New number of replicas (>= 0) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`<# of replicas>`: New number of replicas (>= 0) 
 
 | Action/Operation | Supported Stages |                 Notes                                        |
 | -----------------|------------------|--------------------------------------------------------------|
