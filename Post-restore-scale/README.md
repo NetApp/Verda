@@ -14,9 +14,9 @@ post: invokes a post-restore operation.
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`<# of replicas>`: New number of replicas (>= 0) 
 
-| Action/Operation | Supported Stages |                 Notes                                        |
-| -----------------|------------------|--------------------------------------------------------------|
-| Restore          | post             | Swap from regionA to regionB (or vice versa) after a restore |
+| Action/Operation | Supported Stages |                 Notes                                             |
+| -----------------|------------------|-------------------------------------------------------------------|
+| Restore          | post             | Scale specified deployed to specified # of replicas after restore |
 
 ## Defining the hook
 
