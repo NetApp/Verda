@@ -2,7 +2,7 @@
 
 Post-restore execution hook to scale a deployment down or up after a restore or clone operation.
 
-args: [ <deployment>, <# of replicas> ]
+args: [ deployment, replicas ]
 
 ## Hook arguments
 
