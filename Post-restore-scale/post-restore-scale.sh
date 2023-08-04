@@ -4,7 +4,7 @@
 # post-restore-scale.sh
 #
 # Pre- and post-snapshot and post-restore execution hooks for Elasticsearch.
-# Tested with XXX and NetApp Astra Control Service 23.07.
+# Tested with NGINX and NetApp Astra Control Service 23.07.
 #
 # args: [<deployment to scale> <# of replicas>]
 #
@@ -104,14 +104,17 @@ get_replicas(){
 }
 
 scale_deployment(){
-  OLD_REPLICAS=$(get_replicas $DEPL_TO_SCALE)
-  info "$0: Scaling deployment $DEPL_TO_SCALE from $OLD_REPLICAS to $NEWREPLICAS."
+  ORIG_REPLICAS=$(get_replicas $DEPL_TO_SCALE)
+  info "$0: Scaling deployment $DEPL_TO_SCALE from $ORIG_REPLICAS to $NEWREPLICAS."
   kubectl scale deployment $DEPL_TO_SCALE --replicas=${NEWREPLICAS}
   rc=$?
   if [ ${rc} -ne 0 ]; then
     error "$0: Error during postrestorehook"
     rc=${epostrestore}
   fi
+
+  # Annotate deployment with original number of replicas
+  kubectl annotate deployment ${DEPL_TO_SCALE} original-replicas=${ORIG_REPLICAS}
 
   REPLICAS=$(get_replicas ${DEPL_TO_SCALE})
   if [[ ${REPLICAS} -ne ${NEWREPLICAS} ]]
