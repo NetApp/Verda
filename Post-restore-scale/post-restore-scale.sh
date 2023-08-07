@@ -114,7 +114,7 @@ scale_deployment(){
   fi
 
   # Annotate deployment with original number of replicas
-  kubectl annotate deployment ${DEPL_TO_SCALE} original-replicas=${ORIG_REPLICAS}
+  kubectl annotate deployment ${DEPL_TO_SCALE} original-replicas=${ORIG_REPLICAS} --overwrite
 
   REPLICAS=$(get_replicas ${DEPL_TO_SCALE})
   if [[ ${REPLICAS} -ne ${NEWREPLICAS} ]]
