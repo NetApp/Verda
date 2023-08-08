@@ -152,6 +152,8 @@ Protection strategies are available for the following applications:
 
 [URL-Rewrite](https://github.com/NetApp/Verda/tree/main/URL-Rewrite) is a post-restore execution hook to change the container image URL from region A to region B (and/or B to A) after a restore. This is intended for use in situations where container registries are regional, and the original region is no longer available due to a DR scenario. The hook can be modified to change other settings after a restore like Ingress.
 
+[Post-restore-scale](https://github.com/NetApp/Verda/tree/main/Post-restore-scale) is a post-restore execution hook to change the number of replicas of deployments in a restored or cloned application after the restore.
+
 ## Contribution Guide
 
 If you would like to add execution hooks/protection guidelines for an application to this repository:
