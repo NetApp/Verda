@@ -24,7 +24,7 @@ To add an execution hook for post-restore image URL rewrites, you will need to:
 1. Add the `post-restore-scale.sh` script to your Astra Control environment
 1. Create an execution hook within your Astra Control application with the following settings:
     1. Operation: `Post-restore`
-    1. Hook Arguments: *deployment*=*replicas* 
+    1. Hook Arguments: *<deployment>*=*<replicas>* 
     1. Hook filter:
         1. `Container name`: `alpine-astra-hook`
 1. Verify the `alpine:latest` container is matched
