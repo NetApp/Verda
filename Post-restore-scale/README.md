@@ -28,4 +28,5 @@ To add an execution hook for post-restore image URL rewrites, you will need to:
     1. Hook filter:
         1. `Container name`: `alpine-astra-hook`
 1. Verify the `alpine:latest` container is matched.
+2. Take a snapshot and/or backup of your application.
 1. Perform a clone or restore operation.
