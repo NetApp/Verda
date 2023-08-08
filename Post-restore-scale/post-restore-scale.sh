@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh 
 #
 
 # post-restore-scale.sh
@@ -6,7 +6,7 @@
 # Pre- and post-snapshot and post-restore execution hooks for Elasticsearch.
 # Tested with NGINX and NetApp Astra Control Service 23.07.
 #
-# args: [<deployment to scale> <# of replicas>]
+# args: [<deployment>=<# of replicas> <deployment>=<# of replicas> .... <deployment>=<# of replicas>]
 #
 
 #
@@ -49,10 +49,6 @@ exists_in_list() {
   return 1
 }
 
-get_deployments(){
-  kubectl get deployments -o custom-columns=NAME:.metadata.name | grep -v NAME
-}
-
 init(){
   # unique error codes for every error case
   ebase=100
@@ -65,37 +61,47 @@ init(){
   # Check for existence of kubectl command:
   KUBECTLCMD=$(which kubectl)
   if [[ ! -x $KUBECTLCMD ]]; then
-    error "kubectl not found, exiting."
+    error "$0: kubectl command not found, exiting."
     rc=$eusage
     exit ${rc}
   fi
-
-  DEPLOYMENTS=$(get_deployments)
+  
+  # Get list of existing deployments:
+  DEPLOYMENTS=$(kubectl get deployments -o custom-columns=NAME:.metadata.name | grep -v NAME)
 }
 
 check_input(){
-  if [ $# -ne 2 ]
+  if [[ $# -lt 1 ]]
   then
-    error "$0: Usage: $0 [<deployment to scale> <# of replicas>]"
+    error "$0: Usage: $0 [<deployment>=<# of replicas> <deployment>=<# of replicas> ... <deployment>=<# of replicas>]"
     exit ${eusage}
   fi
 
-  DEPL_TO_SCALE=$1
-  NEWREPLICAS=$2
+  for kv in "$@"
+  do
+    if [[ ${kv} =~ "=" ]]
+    then
+      DEPL_TO_SCALE=$(python -c "print(\"${kv}\".split('=')[0])")
+      NEWREPLICAS=$(python -c "print(\"${kv}\".split('=')[1])")
 
-  if [[ $NEWREPLICAS -lt 0 ]]
-  then
-    error "$0: Number of new replicas must be >= 0"
-    exit ${eusage}
-  fi
+      if [[ $NEWREPLICAS -lt 0 ]]
+      then
+        error "$0: $DEPL_TO_SCALE - Number of new replicas must be >= 0"
+        exit ${eusage}
+      fi
 
-  if exists_in_list "$DEPLOYMENTS" " " "$DEPL_TO_SCALE"
-  then
-    info "$0: Deployment $DEPL_TO_SCALE found."
-  else
-    error "$0: Deployment $DEPL_TO_SCALE does not exist."
-    exit ${eusage}
-  fi
+      if exists_in_list "${DEPLOYMENTS}" " " "${DEPL_TO_SCALE}"
+      then
+        info "$0: Deployment $DEPL_TO_SCALE found."
+      else
+        error "$0: Deployment $DEPL_TO_SCALE does not exist."
+        exit ${eusage}
+      fi
+    else
+      error "$0: Usage: $0 [<deployment>=<# of replicas> <deployment>=<# of replicas> ... <deployment>=<# of replicas>]"
+      exit ${eusage}
+    fi
+  done
 }
 
 get_replicas(){
@@ -104,9 +110,11 @@ get_replicas(){
 }
 
 scale_deployment(){
-  ORIG_REPLICAS=$(get_replicas $DEPL_TO_SCALE)
-  info "$0: Scaling deployment $DEPL_TO_SCALE from $ORIG_REPLICAS to $NEWREPLICAS."
-  kubectl scale deployment $DEPL_TO_SCALE --replicas=${NEWREPLICAS}
+  deployment=$1
+  replicas=$2
+  ORIG_REPLICAS=$(get_replicas $deployment)
+  info "$0: Scaling deployment $deployment from $ORIG_REPLICAS to $replicas."
+  kubectl scale deployment $deployment --replicas=${replicas}
   rc=$?
   if [ ${rc} -ne 0 ]; then
     error "$0: Error during postrestorehook"
@@ -114,15 +122,15 @@ scale_deployment(){
   fi
 
   # Annotate deployment with original number of replicas
-  kubectl annotate deployment ${DEPL_TO_SCALE} original-replicas=${ORIG_REPLICAS} --overwrite
+  kubectl annotate deployment ${deployment} original-replicas=${ORIG_REPLICAS} --overwrite
 
-  REPLICAS=$(get_replicas ${DEPL_TO_SCALE})
-  if [[ ${REPLICAS} -ne ${NEWREPLICAS} ]]
+  ACTREPLICAS=$(get_replicas ${deployment})
+  if [[ ${ACTREPLICAS} -ne ${replicas} ]]
   then
-    error "$0: Error in scaling deployment ${DEPL_TO_SCALE} to ${NEWREPLICAS} replicas."
+    error "$0: Error in scaling deployment ${deployment} to ${replicas} replicas."
     rc=${epostrestore}
   else
-    info "$0: Succesfully scaled deployment ${DEPL_TO_SCALE} to ${NEWREPLICAS} replicas."
+    info "$0: Succesfully scaled deployment ${deployment} to ${replicas} replicas."
   fi
 }
 
@@ -131,6 +139,12 @@ scale_deployment(){
 #
 init
 check_input $@
-scale_deployment
+
+for kv in "$@"
+do
+  DEPL_TO_SCALE=$(python -c "print(\"${kv}\".split('=')[0])")
+  NEWREPLICAS=$(python -c "print(\"${kv}\".split('=')[1])")
+  scale_deployment ${DEPL_TO_SCALE} ${NEWREPLICAS}
+done
 
 exit ${rc}
