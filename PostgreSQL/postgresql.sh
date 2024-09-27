@@ -4,10 +4,10 @@
 #
 #
 # Pre- and post-snapshot and post-restore execution hooks for PostgreSQL with NetApp Astra Control.
-# Tested with PostgreSQL 14.4.0 deployed by Bitnami helm chart 11.6.7 and NetApp Astra Control Service 22.04.
+# Tested with PostgreSQL 16.4.0 deployed by Bitnami helm chart 15.5.36 and NetApp Astra Control Service 24.03.
 #
 # args: [pre|post]
-# pre: Lock all tables and start pg_start_backup()
+# pre: Lock all tables and start pg_backup_start()
 # post: Take database out of read-only mode
 #
 
@@ -151,8 +151,8 @@ quiesce() {
         content="${content} LOCK TABLE ${table} IN SHARE MODE; "
     done
 
-    # (3) start the pg_start_backup()
-    content="${content} SELECT pg_start_backup('${sname}'); "
+    # (3) start the pg_backup_start()
+    content="${content} SELECT pg_backup_start('${sname}'); "
 
     # (4) hold the tables locked
     content="${content} SELECT pg_sleep(${SLEEP_TIME}); "
@@ -243,7 +243,7 @@ unquiesce() {
         return 0
     fi
 
-    content="select pg_stop_backup()"
+    content="select pg_backup_stop()"
     cmd_file="$(createTmpFile "${content}")"
 
     # Take database out of read-only mode
@@ -330,7 +330,7 @@ createTmpFile() {
 #
 main() {
     #
-    # The "slave" side does not support pg_start_backup.   Therefore, we do nothing.
+    # The "slave" side does not support pg_backup_start.   Therefore, we do nothing.
     # I have tested.  Even we do nothing on the "slave" side, it depends on "master" side to sync.  It works fine.
     #
     if [ "${POSTGRES_REPLICATION_MODE}" = "slave" ]; then
