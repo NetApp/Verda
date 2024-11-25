@@ -1,10 +1,10 @@
-# Verda - Protecting popular cloud-native K8s applications with Astra Control
+# Verda - Protecting popular cloud-native K8s applications with Trident protect
 
-This project aims to help users protect popular Kubernetes applications with NetApp Astra Control by taking app-consistent snapshots, backups, and other techniques.
+This project aims to help users protect popular Kubernetes applications with NetApp Trident protect by taking app-consistent snapshots, backups, and other techniques.
 
 A snapshot is a consistent point-in-time copy of an app that is stored on the volume used by the app. Snapshots are used to restore the state of an app.
 
-Astra Control also allows you to take backups for an offsite copy of your application and its data. A backup can be slower to create when compared to snapshots. Backups can be accessed across data centers and cloud regions to enable disaster recovery and app migrations. You can also choose a longer retention period for backups.
+Trident protect also allows you to take backups for an offsite copy of your application and its data. A backup can be slower to create when compared to snapshots. Backups can be accessed across data centers and cloud regions to enable disaster recovery and app migrations. You can also choose a longer retention period for backups.
 
 Some applications might require app-specific steps to be performed. This could be:
 * before or after a snapshot is created.
@@ -12,9 +12,9 @@ Some applications might require app-specific steps to be performed. This could b
 * after restoring from a snapshot or backup.
 * after a failover of an application (Astra Control Center with replication only).
 
-Astra Control can execute app-specific custom scripts called execution hooks.
+Trident protect can execute app-specific custom scripts called execution hooks.
 
-An execution hook is a custom action coded as a script that can be executed when snapshots or backups are created for an app managed by Astra Control. Execution hooks can also be used during app restores. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
+An execution hook is a custom action coded as a script that can be executed when snapshots or backups are created for an app managed by Trident protect. Execution hooks can also be used during app restores. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
 
 This repo provides execution hook examples for popular cloud-native applications to make protecting applications straightforward, robust, and easy to orchestrate.
 
@@ -31,16 +31,14 @@ User contributions are welcome! Take a look at the [Contribution Guide](#contrib
 | Snapshot         | Pre/Post         |                                        |
 | Backup           | Pre/Post-Backup  |                                        |
 | Restore          | Post-Restore     |Pre-restore is not needed and supported |
-| Failover         | Post-failover    |ACC with replication only
+| Failover         | Post-failover    |Trident protect with snap-mirror replication only
 
 ## Adding an Execution Hook
 
-* Discover your Kubernetes cluster.
-* Manage the desired application.
-* Once the application is managed, select the "Execution hooks" tab.
-* Add the execution hook.
-* Trigger the execution hook by performing an operation (snapshot, backup, restore).
-* Verify its execution in the Activity Window of Astra Control.
+* Define the desired application in Trident protect.
+* Once the application is defined, create the execution hooks for the application following the [Trident protect documentation](https://docs.netapp.com/us-en/trident/trident-protect/trident-protect-use-execution-hooks.html#create-an-execution-hook).
+* Trigger the execution hook by performing the respective operation (snapshot, backup, restore).
+* Verify its execution in the status output of the respective operation's custom resource and/or in the status output of the corresponding exechooksrun CR.
 
 ## Script Templates for Execution Hooks
 
@@ -48,7 +46,7 @@ The `script-templates` directory contains sample scripts. These can be used to o
 
 | Script template               | Operations performed                                                                 |
 | ------------------------------|--------------------------------------------------------------------------------------|
-| success_sample                | Simple hook that succeeds and writes a message to standard output and standard error |                                      |
+| success_sample                | Simple hook that succeeds and writes a message to standard output and standard error |                                     |
 | success_sample_args           | Simple hook that uses arguments                                                      |
 | success_sample_pre_post       | Simple hook that can be used for pre-snapshot and post-snapshot operations           |
 | failure_sample_verbose        | Handling failures in an execution hook with verbose logging                          |
@@ -57,37 +55,35 @@ The `script-templates` directory contains sample scripts. These can be used to o
 
 ## Troubleshooting failures
 
-* If the execution of a hook fails, the return code is captured and is included in the hook failure event. This is also captured in Astra Control's Activity.
-* If a hook script fails, the script's stderr/stdout output is logged in the Nautilus logs. It is important to note that execution hook failures are soft.
-* The failure does NOT cause the operation to be tagged as a failure.
+* If the execution of a hook fails, the return code is captured and is included in the hook failure event and captured in the operation's CR status.
+* If a hook script fails, the script's stderr/stdout output is logged in the operation's CR status.
+* It is important to note that execution hook failures are soft. The failure does NOT cause the operation to be tagged as a failure.
 
 ## Notes about execution hooks
 
 Consider the following when planning execution hooks for your apps.
 
- * Astra Control requires execution hooks to be written in the format of executable shell scripts.
+ * Trident protect requires execution hooks to be written in the format of executable shell scripts.
 
- * Script size is limited to 128KB.
+ * Script size is limited to 96kB.
 
- *  Astra Control uses execution hook settings and any matching criteria to determine which hooks are applicable to a snapshot or restore.
-    All execution hook failures are soft failures; other hooks and the snapshot/restore are still attempted even if a hook fails. However, when a hook fails, a warning event is recorded in the Activity page event log.
+ *  Trident protect uses execution hook settings and any matching criteria to determine which hooks are applicable to a snapshot or restore.
+    All execution hook failures are soft failures; other hooks and the snapshot/restore are still attempted even if a hook fails. However, when a hook fails, a warning event is recorded in the operation's CR status.
 
- *  To create, edit, or delete execution hooks, you must be a Astra Control user with Owner, Admin, or Member permissions.
-
- *  If an execution hook takes longer than 25 minutes to run, the hook will fail, creating an event log entry with a return code of "N/A". Any affected snapshot will time out and be marked as failed, with a resulting event log entry noting the timeout.
+ *  When creating an execution hook CR, you can define the timeout as a number defining how long in minutes that the execution hook is allowed to run. The minimum value is 1 minute, and the default value is 25 minutes if not specified. If an execution hook takes longer than the timeout to run, the hook will fail, creating an entry in the hook operation's CR. Any affected snapshot will time out and be marked as failed, with a resulting event log entry noting the timeout.
 
     - Since execution hooks often reduce or completely disable the functionality of the application they are running against, you should always try to minimize the time your custom execution hooks take to run.
 
- *  When you add or edit an execution hook to an application, you can add filters to an execution hook to mange which containers the hook will match. Filters are useful for applications that use the same container image on all containers, but might use each image for a different purpose (such as Elasticsearch). Filters enable you to create scenarios where execution hooks will run on some of those identical containers, but not necessarily all of them. If you create multiple filters for a single execution hook, they are combined with a logical AND operator. You can have up to 10 active filters per execution hook.
+ *  When you add an execution hook to an application, you can add filters to an execution hook to mange which containers the hook will match. Filters are useful for applications that use the same container image on all containers, but might use each image for a different purpose (such as Elasticsearch). Filters enable you to create scenarios where execution hooks will run on some of those identical containers, but not necessarily all of them. If you create multiple filters for a single execution hook, they are combined with a logical AND operator. You can have up to 10 active filters per execution hook.
 Each filter you add to an execution hook uses a regular expression to match containers in your cluster. When a hook matches a container, the hook will run its associated script on that container.
 
     * Regular expressions for filters use the [Regular Expression 2 (RE2)](https://github.com/google/re2/wiki/Syntax) syntax, which does not support creating a filter that excludes containers from the list of matches.
 
     * The following hook filter types are available:
         - Container image
-        - Namespace
+        - Namespace name
         - Pod name
-        - Label
+        - Pod label
         - Container name
 
  *  When a snapshot or backup is run, execution hook events take place in the following order:
@@ -98,9 +94,7 @@ Each filter you add to an execution hook uses a regular expression to match cont
 
     -   Any applicable post-snapshot/backup execution hooks are run on the appropriate containers. You can create and run as many custom post-snapshot/backup hooks as you need, but the order of execution of these hooks after the snapshot/backup is neither guaranteed nor configurable.
     
- * When a restore is run, any applicable post-restore execution hooks are run on the appropriate containers after a 5min wait time after restore complete. You can create and run as many custom post-restore hooks as you need, but the order of execution of these hooks after the restore is neither guaranteed nor configurable.
-
- *  Always test your execution hook scripts before enabling them in a production environment. You can use the `kubectl exec` command to conveniently test the scripts. To do so, first upload the hook script you want to test into the pod where it’s supposed to run and then execute like, like in the example below:
+ *  Always test your execution hook scripts before enabling them in a production environment. You can use the `kubectl exec` command to conveniently test the scripts. To do so, first upload the hook script you want to test into the pod where it’s supposed to run and then execute it, like in the example below:
 
   ```bash
   ~ # kubectl cp cassandra-snap-hooks.sh cassandra-0:/tmp -n cassandra
