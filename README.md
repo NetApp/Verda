@@ -93,6 +93,7 @@ Each filter you add to an execution hook uses a regular expression to match cont
     -   The snapshot/backup is performed.
 
     -   Any applicable post-snapshot/backup execution hooks are run on the appropriate containers. You can create and run as many custom post-snapshot/backup hooks as you need, but the order of execution of these hooks after the snapshot/backup is neither guaranteed nor configurable.
+* When a restore is run, any applicable post-restore execution hooks are run on the appropriate containers after a 5min wait time after restore complete. You can create and run as many custom post-restore hooks as you need, but the order of execution of these hooks after the restore is neither guaranteed nor configurable.
     
  *  Always test your execution hook scripts before enabling them in a production environment. You can use the `kubectl exec` command to conveniently test the scripts. To do so, first upload the hook script you want to test into the pod where it’s supposed to run and then execute it, like in the example below:
 
