@@ -4,12 +4,13 @@
 #
 #
 # Pre- and post-snapshot execution hooks for MariaDB and MySQL with NetApp Astra Control.
-# Tested with MySQL 8.0.29 (deployed by Bitnami helm chart 9.1.7)/MariaDB 10.6.8 (deployed by Bitnami helm chart 11.0.13) and NetApp Astra Control Service 22.04.
+# Tested with MySQL 8.0.29 (deployed by Bitnami helm chart 9.1.7)/MariaDB 10.6.8 (deployed by Bitnami helm chart 11.0.13) and NetApp Trident protect 24.10.
 #
 # args: [pre|post]
 # pre: Flush all tables with read lock
 # post: Take database out of read-only mode
 #
+# 
 
 # Complex shell commands are difficult to get right through a remote execution api.
 # For something like this obtuse procedure, an alternative approach is to mount a
