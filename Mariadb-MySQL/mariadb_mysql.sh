@@ -10,7 +10,9 @@
 # pre: Flush all tables with read lock
 # post: Take database out of read-only mode
 #
-# 
+# Note: Due to the design of this hook and the Trident protect execution hook architecture,
+# this hook will wait in the pre-stage until the hook timeout (default 25min) expires.
+# You may think about reducing spec.timeout to a lower value when configuring this hook in your cluster.
 
 # Complex shell commands are difficult to get right through a remote execution api.
 # For something like this obtuse procedure, an alternative approach is to mount a
