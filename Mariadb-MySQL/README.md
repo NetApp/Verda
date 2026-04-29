@@ -2,6 +2,9 @@
 
 Pre- and post-snapshot execution hooks for MariaDB and MySQL with NetApp Trident protect.
 Tested with MySQL 8.4 and NetApp Trident protect 26.02.
+The MySQL/MariaDB version must support the global read_only and super_read_only variables.
+The mariadb_mysql.sh hook requires the bash shell to be installed in the container. 
+The mariadb_mysql_POSIX.sh version works with POSIX sh.  
 
 args: {quiesce|unfreeze} <user> <password> [host] [port]
 

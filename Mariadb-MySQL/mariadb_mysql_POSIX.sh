@@ -1,13 +1,13 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 #
-# mariadb_mysql.sh
+# mariadb_mysql_POSIX.sh
 #
 # Pre- and post-snapshot execution hooks for MariaDB and MySQL with NetApp Trident protect.
 # Tested with MySQL 8.4 and NetApp Trident protect 26.02.
 # MySQL/MariaDB version must support the global read_only and super_read_only variables.
-# MySQL/MariaDB container must have bash installed.
-
+# POSIX shell (sh); no bash-specific features.
+#
 # args: {quiesce|unfreeze} <user> <password> [host] [port]
 # quiesce: Flush all tables with read lock
 # unfreeze: Take database out of read-only mode
@@ -19,8 +19,8 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  mysql-quiesce.sh quiesce  <user> <password> [host] [port]
-  mysql-quiesce.sh unfreeze <user> <password> [host] [port]
+  mariadb_mysql_new.sh quiesce  <user> <password> [host] [port]
+  mariadb_mysql_new.sh unfreeze <user> <password> [host] [port]
 
 Notes:
 - Requires privileges to run SET GLOBAL ... (admin user).
@@ -28,7 +28,7 @@ Notes:
 EOF
 }
 
-if [[ $# -lt 3 ]]; then
+if [ "$#" -lt 3 ]; then
   usage
   exit 2
 fi
@@ -41,17 +41,18 @@ PORT="${5:-3306}"
 
 # Prefer env var over putting password on command line flags
 # (still visible to the process environment for that process, but avoids -pPASS in argv)
-MYSQL_BASE=( mysql
-  --protocol=tcp
-  -h "${HOST}"
-  -P "${PORT}"
-  -u "${USER}"
-  --batch --skip-column-names
-)
+mysql_cmd() {
+  MYSQL_PWD="${PASS}" mysql \
+    --protocol=tcp \
+    -h "${HOST}" \
+    -P "${PORT}" \
+    -u "${USER}" \
+    --batch --skip-column-names \
+    "$@"
+}
 
 mysql_exec() {
-  local sql="$1"
-  MYSQL_PWD="${PASS}" "${MYSQL_BASE[@]}" -e "${sql}"
+  mysql_cmd -e "$1"
 }
 
 wait_for_mysql() {
