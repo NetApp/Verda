@@ -142,7 +142,7 @@ Protection strategies are available for the following applications:
 
 * [Cassandra](https://github.com/NetApp/execution-hooks/tree/main/Cassandra)
 * [Elasticsearch](https://github.com/NetApp/execution-hooks/tree/main/Elasticsearch)
-* [MariaDB](https://github.com/NetApp/execution-hooks/tree/main/Mariadb)
+* [MariaDB](https://github.com/NetApp/execution-hooks/tree/main/MariaDB)
 * [MySQL](https://github.com/NetApp/execution-hooks/tree/main/MySQL)
 * [MongoDB](https://github.com/NetApp/execution-hooks/tree/main/MongoDB)
 * [PostgreSQL](https://github.com/NetApp/execution-hooks/tree/main/PostgreSQL)
