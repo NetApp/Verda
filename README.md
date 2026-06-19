@@ -1,10 +1,12 @@
-# Verda - Protecting popular cloud-native K8s applications with Trident protect
+# Verda - Protecting popular cloud-native K8s applications with Trident Protect
 
-This project aims to help users protect popular Kubernetes applications with NetApp Trident protect by taking app-consistent snapshots, backups, and other techniques.
+This project aims to help users protect popular Kubernetes applications with NetApp Trident Protect and Backup and Recovery for Kubernetes by taking app-consistent snapshots, backups, and other techniques.
+
+The scripts in this repository are provided as-is and are not officially supported by NetApp. NetApp support covers only the execution hooks framework within Trident Protect and Backup and Recovery.
 
 A snapshot is a consistent point-in-time copy of an app that is stored on the volume used by the app. Snapshots are used to restore the state of an app.
 
-Trident protect also allows you to take backups for an offsite copy of your application and its data. A backup can be slower to create when compared to snapshots. Backups can be accessed across data centers and cloud regions to enable disaster recovery and app migrations. You can also choose a longer retention period for backups.
+Trident Protect also allows you to take backups for an offsite copy of your application and its data. A backup can be slower to create when compared to snapshots. Backups can be accessed across data centers and cloud regions to enable disaster recovery and app migrations. You can also choose a longer retention period for backups.
 
 Some applications might require app-specific steps to be performed. This could be:
 * before or after a snapshot is created.
@@ -12,9 +14,9 @@ Some applications might require app-specific steps to be performed. This could b
 * after restoring from a snapshot or backup.
 * after a failover of an application (Astra Control Center with replication only).
 
-Trident protect can execute app-specific custom scripts called execution hooks.
+Trident Protect and Backup and Recovery can execute app-specific custom scripts called execution hooks.
 
-An execution hook is a custom action coded as a script that can be executed when snapshots or backups are created for an app managed by Trident protect. Execution hooks can also be used during app restores. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
+An execution hook is a custom action coded as a script that can be executed when snapshots or backups are created for an app managed by Trident Protect. Execution hooks can also be used during app restores. For example, if you have a database app, you can use execution hooks to pause all database transactions before a snapshot, and resume transactions after the snapshot is complete. This ensures application-consistent snapshots.
 
 This repo provides execution hook examples for popular cloud-native applications to make protecting applications straightforward, robust, and easy to orchestrate.
 
@@ -35,8 +37,8 @@ User contributions are welcome! Take a look at the [Contribution Guide](#contrib
 
 ## Adding an Execution Hook
 
-* Define the desired application in Trident protect.
-* Once the application is defined, create the execution hooks for the application following the [Trident protect documentation](https://docs.netapp.com/us-en/trident/trident-protect/trident-protect-use-execution-hooks.html#create-an-execution-hook).
+* Define the desired application in Trident Protect.
+* Once the application is defined, create the execution hooks for the application following the [Trident Protect documentation](https://docs.netapp.com/us-en/trident/trident-protect/trident-protect-use-execution-hooks.html#create-an-execution-hook).
 * Trigger the execution hook by performing the respective operation (snapshot, backup, restore).
 * Verify its execution in the status output of the respective operation's custom resource and/or in the status output of the corresponding exechooksrun CR.
 
@@ -63,12 +65,12 @@ The `script-templates` directory contains sample scripts. These can be used to o
 
 Consider the following when planning execution hooks for your apps.
 
- * Trident protect requires execution hooks to be written in the format of executable shell scripts.
+ * Trident Protect requires execution hooks to be written in the format of executable shell scripts.
 
  * Script size is limited to 96kB.
 
- *  Trident protect uses execution hook settings and any matching criteria to determine which hooks are applicable to a snapshot or restore.
-    All execution hook failures are soft failures; other hooks and the snapshot/restore are still attempted even if a hook fails. However, when a hook fails, a warning event is recorded in the operation's CR status.
+ * Trident protect uses execution hook settings and any matching criteria to determine which hooks are applicable to a snapshot or restore.
+All execution hook failures are soft failures; other hooks and the snapshot/restore are still attempted even if a hook fails. However, when a hook fails, a warning event is recorded in the operation's CR status.
 
  *  When creating an execution hook CR, you can define the timeout as a number defining how long in minutes that the execution hook is allowed to run. The minimum value is 1 minute, and the default value is 25 minutes if not specified. If an execution hook takes longer than the timeout to run, the hook will fail, creating an entry in the hook operation's CR. Any affected snapshot will time out and be marked as failed, with a resulting event log entry noting the timeout.
 
@@ -79,7 +81,7 @@ Each filter you add to an execution hook uses a regular expression to match cont
 
     * Regular expressions for filters use the [Regular Expression 2 (RE2)](https://github.com/google/re2/wiki/Syntax) syntax, which does not support creating a filter that excludes containers from the list of matches.
 
-    * The following hook filter types are available:
+    * The following hook filter types are available in Trident Protect:
         - Container image
         - Namespace name
         - Pod name
@@ -94,7 +96,7 @@ Each filter you add to an execution hook uses a regular expression to match cont
 
     -   Any applicable post-snapshot/backup execution hooks are run on the appropriate containers. You can create and run as many custom post-snapshot/backup hooks as you need, but the order of execution of these hooks after the snapshot/backup is neither guaranteed nor configurable.
     
-* Post-restore hooks will wait for up to 5 minutes for the pods to be ready, if they are not ready within 5 minutes Trident protect will try to run the post-restore hooks anyway.
+* Post-restore hooks will wait for up to 5 minutes for the pods to be ready, if they are not ready within 5 minutes Trident Protect will try to run the post-restore hooks anyway.
 
 * You can create and run as many custom post-restore hooks as you need, but the order of execution of these hooks after the restore is neither guaranteed nor configurable.
     
@@ -140,7 +142,8 @@ Protection strategies are available for the following applications:
 
 * [Cassandra](https://github.com/NetApp/execution-hooks/tree/main/Cassandra)
 * [Elasticsearch](https://github.com/NetApp/execution-hooks/tree/main/Elasticsearch)
-* [MariaDB & MySQL](https://github.com/NetApp/execution-hooks/tree/main/Mariadb-MySQL)
+* [MariaDB](https://github.com/NetApp/execution-hooks/tree/main/Mariadb)
+* [MySQL](https://github.com/NetApp/execution-hooks/tree/main/MySQL)
 * [MongoDB](https://github.com/NetApp/execution-hooks/tree/main/MongoDB)
 * [PostgreSQL](https://github.com/NetApp/execution-hooks/tree/main/PostgreSQL)
 * [Redis](https://github.com/NetApp/execution-hooks/tree/main/Redis)
