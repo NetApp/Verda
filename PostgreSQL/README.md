@@ -2,7 +2,7 @@
 
 Pre- and post-snapshot execution hooks for PostgresSQL with NetApp Astra Control.
 
-Tested with PostgreSQL 16.4.0 deployed by Bitnami helm chart 15.5.36 and NetApp Astra Control Service 24.03.
+Tested with PostgreSQL 16.14-1 and NetApp Trident Protect 26.06.
 
 
 
