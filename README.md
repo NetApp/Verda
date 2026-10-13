@@ -168,9 +168,9 @@ Each filter you add to an execution hook uses a regular expression to match cont
 - [YugabyteDB](YugabyteDB)
 - [Microsoft SQL Server](SQLServer2022)
 
-[URL-Rewrite](URL-Rewrite) is a post-restore execution hook to change the container image URL from region A to region B (and/or B to A) after a restore. This is intended for situations where container registries are regional and the original region is no longer available due to a DR scenario. The hook can be modified to change other settings after a restore, like Ingress. Note that the new resource transformations in Trident Protect and Backup and Recovery might provide an easier to change settings after a restore.
+[URL-Rewrite](URL-Rewrite) is a post-restore execution hook to change the container image URL from region A to region B (and/or B to A) after a restore. This is intended for situations where container registries are regional and the original region is no longer available due to a DR scenario. The hook can be modified to change other settings after a restore, like Ingress. Note that the new resource transformations in Trident Protect and Backup and Recovery might provide an easier way to change settings after a restore.
 
-[Post-restore-scale](Post-restore-scale) is a post-restore execution hook to change the number of replicas of deployments in a restored or cloned application after the restore. Note that the new resource transformations in Trident Protect and Backup and Recovery might provide an easier to change settings after a restore.
+[Post-restore-scale](Post-restore-scale) is a post-restore execution hook to change the number of replicas of deployments in a restored or cloned application after the restore. Note that the new resource transformations in Trident Protect and Backup and Recovery might provide an easier way to change settings after a restore.
 
 ## Contribution Guide
 
