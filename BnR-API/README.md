@@ -21,6 +21,7 @@ Work through the sections in order the first time. Later sections assume the env
 | [02-credentials-and-targets](02-credentials-and-targets/) | Add cloud and object storage credentials: [Azure](02-credentials-and-targets/azure.md), [AWS S3](02-credentials-and-targets/aws-s3.md), [ONTAP S3](02-credentials-and-targets/ontap-s3.md), [StorageGRID](02-credentials-and-targets/storagegrid.md) (untested) |
 | [03-cluster-onboarding](03-cluster-onboarding/README.md) | Create an OCCM credential, install Trident Protect, list discovered Kubernetes clusters |
 | [lib](lib/bnr-common.sh) | Shared shell helpers used by the scripts |
+| [04-protection-policies](04-protection-policies/README.md) | Create and delete protection policies (local snapshot, disk-to-object, disk-to-disk, 3-2-1 fan-out) for Azure, AWS S3, ONTAP S3 and StorageGRID (untested) targets |
 
 ## Conventions
 

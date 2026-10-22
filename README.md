@@ -10,10 +10,10 @@ User contributions are welcome! See the [Contribution Guide](#contribution-guide
 
 | Content | Location | Description |
 | ------- | -------- | ----------- |
-| Execution hooks for applications | One folder per application, for example [`MySQL/`](MySQL), [`PostgreSQL/`](PostgreSQL) | Pre/post hooks for app-consistent snapshots and backups |
-| Execution hook script templates | [`script-templates/`](script-templates) | Starting points for writing your own hooks |
-| Post-restore hooks | [`URL-Rewrite/`](URL-Rewrite), [`Post-restore-scale/`](Post-restore-scale) | Adjust an application after a restore or clone |
-| **Backup and Recovery API automation** | [`BnR-API/`](BnR-API/README.md) | Example `curl`/`jq` commands and scripts to automate NetApp Backup and Recovery through the NetApp Console API |
+| **Execution hooks for applications** | One folder per application, for example [`MySQL/`](MySQL), [`PostgreSQL/`](PostgreSQL) | Pre/post hooks for app-consistent snapshots and backups |
+| **Execution hook script templates** | [`script-templates/`](script-templates) | Starting points for writing your own hooks |
+| **Post-restore hooks** | [`URL-Rewrite/`](URL-Rewrite), [`Post-restore-scale/`](Post-restore-scale) | Adjust an application after a restore or clone |
+| **Backup and Recovery API automation** | [`BnR-API/`](BnR-API/README.md) | Example `curl`/`jq` commands and scripts to automate NetApp Backup and Recovery through the NetApp Console API, including protection policy creation and deletion |
 
 ## Backup and Recovery API automation
 
@@ -23,6 +23,7 @@ The [`BnR-API`](BnR-API/README.md) folder collects example commands to automate 
 - [Account discovery](BnR-API/01-account-discovery/README.md): find account, workspace/project and agent IDs
 - [Credentials and backup targets](BnR-API/02-credentials-and-targets): Azure, AWS S3, ONTAP S3 and StorageGRID
 - [Cluster onboarding](BnR-API/03-cluster-onboarding/README.md): OCCM credentials, Trident Protect installation, listing discovered clusters
+- [Protection policies](BnR-API/04-protection-policies/README.md): create and delete snapshot, backup, replication and 3-2-1 fan-out policies for Azure, AWS S3, ONTAP S3 and StorageGRID (untested) targets
 
 ## Protecting applications with execution hooks
 
