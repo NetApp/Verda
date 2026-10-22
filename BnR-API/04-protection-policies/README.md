@@ -61,6 +61,8 @@ Retention of replicas and object store copies can be set separately (`--secondar
 For `disk-to-disk` and `3-2-1-fanout`, the scripts look up the system, SVM and aggregate. Set `TARGET_SYSTEM_NAME` for the common case. If the system has more than one SVM or aggregate, list the choices and copy one entry exactly as the Console drop-down shows it:
 
 ```bash
+./create-k8s-policy.sh --list-secondary-targets
+# or, in the same form as the create command:
 ./create-k8s-policy.sh azure 3-2-1-fanout --list-secondary-targets
 export SECONDARY_TARGET="<system> | <svm> | <aggregate>"
 ```
@@ -96,7 +98,7 @@ The call returns an array of all policies. The create call returns the new `poli
 
 ## Tested with
 
-Console date: 2026-10-22, Trident Protect v26.09.0-console.
+Fill in before opening the pull request: Console date, Trident Protect version, targets and policy types tested live.
 
 | Target | local-snapshot | disk-to-object | disk-to-disk | 3-2-1-fanout |
 | ------ | -------------- | -------------- | ------------ | ------------ |
