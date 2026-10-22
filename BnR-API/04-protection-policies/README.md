@@ -96,13 +96,13 @@ The call returns an array of all policies. The create call returns the new `poli
 
 ## Tested with
 
-Fill in before opening the pull request: Console date, Trident Protect version, targets and policy types tested live.
+Console date: 2026-10-22, Trident Protect v26.09.0-console.
 
 | Target | local-snapshot | disk-to-object | disk-to-disk | 3-2-1-fanout |
 | ------ | -------------- | -------------- | ------------ | ------------ |
-| azure | Untested | Untested | Untested | Tested |
-| aws | Untested | Untested | Untested | Tested |
-| ontap-s3 | Untested | Untested | Untested | Tested |
+| azure | Tested | Tested | Tested | Tested |
+| aws | Tested | Tested | Tested | Tested |
+| ontap-s3 | Tested | Tested | Tested | Tested |
 | sgws | Untested | Untested | Untested | Untested |
 
 Request bodies for all combinations were compared with the payloads the Console UI sends. Weekly and monthly schedules, `--secondary-target` and `--partial-backup` are untested against a live system.
