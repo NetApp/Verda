@@ -2,7 +2,7 @@
 
 Create Backup and Recovery for Kubernetes **protection policies** through the NetApp Console API instead of the Console UI.
 
-Prerequisites: [authentication](../00-authentication/README.md) and [account discovery](../01-account-discovery/README.md) completed. The backup target (credential, bucket or storage account) must already exist, see [credentials and targets](../02-credentials-and-targets/). `ACCOUNT_ID` must be the organization ID (a UUID).
+Prerequisites: [authentication](../00-authentication/README.md) and [account discovery](../01-account-discovery/README.md) completed. The backup target (credential, bucket or storage account) must already exist, see [credentials and targets](../02-credentials-and-targets/README.md). `ACCOUNT_ID` must be the organization ID (a UUID).
 
 ## Policy types and targets
 
@@ -35,7 +35,7 @@ Only `--policy-name` is mandatory on the command line. Everything else comes fro
 
 ## Required variables
 
-All combinations need `CONSOLE_API` (optional, defaults to `https://api.bluexp.netapp.com`), `ACCOUNT_ID`, `AGENT_ID` and `ACCESS_TOKEN`. In addition:
+All combinations need `CONSOLE_API` (optional, defaults to `https://cloudmanager.cloud.netapp.com`), `ACCOUNT_ID`, `AGENT_ID` and `ACCESS_TOKEN`. In addition:
 
 | Target | Variables |
 | ------ | --------- |
@@ -98,7 +98,7 @@ The call returns an array of all policies. The create call returns the new `poli
 
 ## Tested with
 
-Fill in before opening the pull request: Console date, Trident Protect version, targets and policy types tested live.
+Tested live against the targets and policy types below. TODO before the pull request: add the Console date and Trident Protect version.
 
 | Target | local-snapshot | disk-to-object | disk-to-disk | 3-2-1-fanout |
 | ------ | -------------- | -------------- | ------------ | ------------ |

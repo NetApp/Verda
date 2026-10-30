@@ -9,7 +9,7 @@
 #   ACCOUNT_ID     NetApp Console organization ID (UUID) used in the API URL and X-Account-Id header
 #   ACCESS_TOKEN   Bearer access token generated from your refresh token
 # Optional environment variables:
-#   CONSOLE_API    API base URL (https://api.bluexp.netapp.com)
+#   CONSOLE_API    API base URL (https://cloudmanager.cloud.netapp.com)
 #   AGENT_ID       Console agent ID; sent as X-Agent-Id if set
 #
 # Endpoint: DELETE .../v1/workloads/k8s/kubernetes/policies/<policyId> (verified live: HTTP 204).
@@ -46,7 +46,7 @@ args=(-s -w '\n%{http_code}' -X DELETE
   -H "Authorization: Bearer $ACCESS_TOKEN" -H "X-Account-Id: $ACCOUNT_ID" -H 'Accept: application/json')
 [ -z "${AGENT_ID:-}" ] || args+=(-H "X-Agent-Id: $AGENT_ID")
 
-out=$(curl "${args[@]}" "${CONSOLE_API:-https://api.bluexp.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies/$policy_id") \
+out=$(curl "${args[@]}" "${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies/$policy_id") \
   || { echo "ERROR: request failed" >&2; exit 1; }
 code="${out##*$'\n'}"; body="${out%$'\n'*}"
 if [[ "$code" =~ ^2 ]]; then

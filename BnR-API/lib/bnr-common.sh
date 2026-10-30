@@ -25,6 +25,28 @@ get_access_token() {
     | jq -r .access_token
 }
 
+# Poll the Backup and Recovery object-storage list until a bucket name appears.
+# Usage: wait_for_object_store "<query>" "<bucket name>" [timeout seconds]
+#   query example: "provider=ONTAP_S3&credential-id=<id>" or "provider=AWS"
+# Requires ACCOUNT_ID plus what api_get needs. Returns 0 when the bucket is
+# listed, 1 on timeout. No job-status call is documented, so "listed" is the
+# signal. BNR_POLL_INTERVAL (seconds, default 5) sets the polling interval.
+wait_for_object_store() {
+  local query=$1 name=$2 timeout=${3:-120} deadline found
+  deadline=$((SECONDS + timeout))
+  while true; do
+    if found=$(api_get "/backup-recovery/organizations/${ACCOUNT_ID}/v1/object-storage?${query}" 2>/dev/null \
+        | jq -r --arg n "$name" '
+            (if type == "array" then . else (.items // []) end)
+            | map(select(.object_store_name == $n)) | .[0].object_store_name // empty' 2>/dev/null) \
+        && [ -n "$found" ]; then
+      return 0
+    fi
+    [ "$SECONDS" -ge "$deadline" ] && return 1
+    sleep "${BNR_POLL_INTERVAL:-5}"
+  done
+}
+
 # GET a Console API path with the standard headers. Usage: api_get "/path"
 api_get() {
   require_env CONSOLE_API ACCESS_TOKEN AGENT_ID

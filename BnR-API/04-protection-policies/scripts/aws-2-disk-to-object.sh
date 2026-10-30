@@ -114,7 +114,7 @@ JSON
 )
 
 curl -s -X POST \
-  "${CONSOLE_API:-https://api.bluexp.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies" \
+  "${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "X-Account-Id: $ACCOUNT_ID" \
   -H 'Accept: application/json' \

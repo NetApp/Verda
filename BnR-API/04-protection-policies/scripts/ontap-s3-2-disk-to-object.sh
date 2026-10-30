@@ -122,7 +122,7 @@ api_get() {  # $1 = URL, further args = extra headers ("Name: value"); prints th
   printf '%s' "$body"
 }
 if [ -z "${ONTAP_S3_SERVER_URL:-}" ]; then
-  BASE="${CONSOLE_API:-https://api.bluexp.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1"
+  BASE="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1"
   creds=$(api_get "$BASE/credentials?provider=ONTAP_S3")
   match=$(printf '%s' "$creds" | jq -c --arg n "$ONTAP_CRED_NAME" '[.[] | select(.credential_name == $n)]')
   if [ "$(printf '%s' "$match" | jq length)" -ne 1 ]; then
@@ -150,7 +150,7 @@ JSON
 )
 
 curl -s -X POST \
-  "${CONSOLE_API:-https://api.bluexp.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies" \
+  "${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "X-Account-Id: $ACCOUNT_ID" \
   -H 'Accept: application/json' \

@@ -88,7 +88,7 @@ die() { echo "ERROR: $*" >&2; echo "Run '$(basename "$0") --help' for usage." >&
 
 list_secondary_targets() {
   for v in ACCOUNT_ID AGENT_ID ACCESS_TOKEN; do [ -n "${!v:-}" ] || die "$v must be set to list the secondary targets"; done
-  CBS="${CONSOLE_API:-https://api.bluexp.netapp.com}/account/$ACCOUNT_ID/providers/cloudmanager_cbs/api"
+  CBS="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/account/$ACCOUNT_ID/providers/cloudmanager_cbs/api"
   api_get() {  # $1 = URL; prints the body, exits on a non-2xx status
     local out code body
     out=$(curl -s -w '\n%{http_code}' -H "Authorization: Bearer $ACCESS_TOKEN" -H "X-Agent-Id: $AGENT_ID" \

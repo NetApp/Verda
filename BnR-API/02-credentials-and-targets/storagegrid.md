@@ -10,7 +10,7 @@ To use StorageGRID buckets as backup destinations you need the FQDN of the gatew
 export ACCESSKEY="<access_key>"
 export SECRETKEY="<secret_key>"
 export STORAGE_SERVER="<gateway_node_FQDN>"
-export PORT=443
+export STORAGE_PORT=443   # the port the gateway node listens on
 ```
 
 ## Add the credentials
@@ -26,7 +26,7 @@ curl --request POST "${CONSOLE_API}/backup-recovery/organizations/${ACCOUNT_ID}/
     --arg provider "SGWS" \
     --arg name "<sgws-cred-name>" \
     --arg server "${STORAGE_SERVER}" \
-    --argjson port "${PORT}" \
+    --argjson port "${STORAGE_PORT}" \
     --arg access_key "${ACCESSKEY}" \
     --arg secret_password "${SECRETKEY}" \
     '{
@@ -38,6 +38,8 @@ curl --request POST "${CONSOLE_API}/backup-recovery/organizations/${ACCOUNT_ID}/
       secret_password: $secret_password
     }')"
 ```
+
+Script alternative: `./scripts/create-s3-credential.sh --provider SGWS --name "<sgws-cred-name>" --server "${STORAGE_SERVER}" --port "${STORAGE_PORT}"`, see [`scripts/create-s3-credential.sh`](scripts/create-s3-credential.sh).
 
 ## Verify
 

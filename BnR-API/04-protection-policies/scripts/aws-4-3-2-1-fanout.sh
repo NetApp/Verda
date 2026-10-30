@@ -173,7 +173,7 @@ fi
 # Values you set yourself are kept; only the missing ones are looked up.
 if [ -z "${TARGET_SYSTEM_ID:-}" ] || [ -z "${TARGET_SYSTEM_NAME:-}" ] || [ -z "${TARGET_CLUSTER_ID:-}" ] \
    || [ -z "${TARGET_STORAGE_SYSTEM_UUID:-}" ] || [ -z "${TARGET_SVM:-}" ] || [ -z "${TARGET_AGGREGATE:-}" ]; then
-  CBS="${CONSOLE_API:-https://api.bluexp.netapp.com}/account/$ACCOUNT_ID/providers/cloudmanager_cbs/api"
+  CBS="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/account/$ACCOUNT_ID/providers/cloudmanager_cbs/api"
   wes=$(api_get "$CBS/v1/working-environment" "X-Account-Id: $ACCOUNT_ID")
   if [ -n "${TARGET_SYSTEM_ID:-}" ]; then key="$TARGET_SYSTEM_ID"; field=id; else key="$TARGET_SYSTEM_NAME"; field=name; fi
   we=$(printf '%s' "$wes" | jq -c --arg k "$key" --arg f "$field" '[(."working-environment" // [])[] | select(.[$f] == $k)]')
@@ -220,7 +220,7 @@ JSON
 )
 
 curl -s -X POST \
-  "${CONSOLE_API:-https://api.bluexp.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies" \
+  "${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "X-Account-Id: $ACCOUNT_ID" \
   -H 'Accept: application/json' \
