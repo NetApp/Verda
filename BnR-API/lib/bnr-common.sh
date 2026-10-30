@@ -48,10 +48,13 @@ wait_for_object_store() {
 }
 
 # GET a Console API path with the standard headers. Usage: api_get "/path"
+# x-account-id is sent when ACCOUNT_ID is set, as the Console UI does.
 api_get() {
   require_env CONSOLE_API ACCESS_TOKEN AGENT_ID
-  curl -sS --fail-with-body "${CONSOLE_API}$1" \
-    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-    -H "x-agent-id: ${AGENT_ID}" \
-    -H "Accept: application/json"
+  local args=(-sS --fail-with-body "${CONSOLE_API}$1"
+    -H "Authorization: Bearer ${ACCESS_TOKEN}"
+    -H "x-agent-id: ${AGENT_ID}"
+    -H "Accept: application/json")
+  [ -z "${ACCOUNT_ID:-}" ] || args+=(-H "x-account-id: ${ACCOUNT_ID}")
+  curl "${args[@]}"
 }

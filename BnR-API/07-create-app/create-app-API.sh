@@ -8,6 +8,9 @@
 # Requires: curl, jq
 ################################################################################
 
+# shellcheck source=../lib/bnr-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/bnr-common.sh"
+
 # Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -95,7 +98,7 @@ ACCESS_TOKEN="${ACCESS_TOKEN:-${BEARER_TOKEN:-}}"
 ORG_ID="${ORG_ID:-}"
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AGENT_ID="${AGENT_ID:-}"
-API_HOST="${API_HOST:-${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}}"
+CONSOLE_API="${CONSOLE_API:-${API_HOST:-https://cloudmanager.cloud.netapp.com}}"
 RESPONSE_FILE="${RESPONSE_FILE:-/tmp/netapp_create_app_response.json}"
 CLUSTER_NAME=""
 APP_NAME=""
@@ -114,7 +117,7 @@ while [[ $# -gt 0 ]]; do
         --org-id)        ORG_ID="$2";            shift 2 ;;
         --account-id)    ACCOUNT_ID="$2";        shift 2 ;;
         --agent-id)      AGENT_ID="$2";          shift 2 ;;
-        --api-host)      API_HOST="$2";          shift 2 ;;
+        --api-host)      CONSOLE_API="$2";          shift 2 ;;
         --response-file) RESPONSE_FILE="$2";     shift 2 ;;
         --cluster-name)  CLUSTER_NAME="$2";      shift 2 ;;
         --app-name)      APP_NAME="$2";          shift 2 ;;
@@ -135,8 +138,9 @@ done
 # Account id matches the organization unless a separate account is passed.
 [ -z "$ACCOUNT_ID" ] && ACCOUNT_ID="$ORG_ID"
 [ -z "$ORG_ID" ] && ORG_ID="$ACCOUNT_ID"
-API_HOST="${API_HOST%/}"
-BASE_URL="${API_HOST}/backup-recovery/organizations/${ORG_ID}/v1/workloads/k8s"
+CONSOLE_API="${CONSOLE_API%/}"
+BASE_PATH="/backup-recovery/organizations/${ORG_ID}/v1/workloads/k8s"
+BASE_URL="${CONSOLE_API}${BASE_PATH}"
 APPS_URL="${BASE_URL}/apps"
 
 # Validate required arguments
@@ -183,11 +187,7 @@ if [ -n "$SITE_PREFIX" ] || [ -n "$POLICY_FILE" ]; then
 fi
 
 # ACCESS_TOKEN (or BEARER_TOKEN) must be set in the environment
-if [ -z "$ACCESS_TOKEN" ]; then
-    echo -e "${RED}Error: ACCESS_TOKEN environment variable is not set.${NC}"
-    echo "Export it before running this script:  export ACCESS_TOKEN='eyJ...'"
-    exit 1
-fi
+require_env ACCESS_TOKEN
 
 # Convert comma-separated values to bash arrays
 IFS=',' read -ra NS_ARRAY <<< "$NAMESPACES"
@@ -203,25 +203,13 @@ print_message() {
 }
 
 ################################################################################
-# Helper: Make authenticated GET request
-################################################################################
-api_get() {
-    local url=$1
-    curl -s -X GET "$url" \
-      -H "Authorization: Bearer $ACCESS_TOKEN" \
-      -H "Accept: application/json" \
-      -H "x-account-id: $ACCOUNT_ID" \
-      -H "x-agent-id: $AGENT_ID"
-}
-
-################################################################################
 # Lookup: Resolve cluster name -> cluster ID
 ################################################################################
 resolve_cluster_id() {
     print_message "$BLUE" "\nLooking up cluster ID for '$CLUSTER_NAME'..."
 
     local response
-    response=$(api_get "${BASE_URL}/clusters")
+    response=$(api_get "${BASE_PATH}/clusters")
 
     CLUSTER_ID=$(echo "$response" | jq -r --arg name "$CLUSTER_NAME" \
       '[if type == "array" then .[] else (.items[]? // empty) end] | map(select(.name == $name)) | .[0].id // empty')
@@ -244,7 +232,7 @@ resolve_policy_id() {
     print_message "$BLUE" "Looking up policy ID for '$POLICY_NAME'..."
 
     local response
-    response=$(api_get "${BASE_URL}/kubernetes/policies")
+    response=$(api_get "${BASE_PATH}/kubernetes/policies")
 
     POLICY_ID=$(echo "$response" | jq -r --arg name "$POLICY_NAME" \
       '[if type == "array" then .[] else (.items[]? // empty) end] | map(select(.policyName == $name)) | .[0].policyId // empty')
@@ -288,7 +276,7 @@ verify_site_policies() {
     done
 
     local response
-    response=$(api_get "${BASE_URL}/kubernetes/policies")
+    response=$(api_get "${BASE_PATH}/kubernetes/policies")
 
     if ! echo "$response" | jq -e 'type == "array" or (.items | type == "array")' >/dev/null 2>&1; then
         print_message "$RED" "Error: could not list protection policies."

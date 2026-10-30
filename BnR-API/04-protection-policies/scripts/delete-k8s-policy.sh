@@ -15,6 +15,8 @@
 # Endpoint: DELETE .../v1/workloads/k8s/kubernetes/policies/<policyId> (verified live: HTTP 204).
 # A policy that is still assigned to protected applications may be refused by the server.
 set -euo pipefail
+# shellcheck source=../../lib/bnr-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
 policy_id=""; assume_yes=false
 while [ $# -gt 0 ]; do
@@ -30,11 +32,7 @@ done
 [[ "$policy_id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]] \
   || { echo "ERROR: '$policy_id' is not a policy ID (expected a UUID such as 4b400c55-40ee-4920-b193-e36c6900cff7)" >&2; exit 1; }
 
-missing=0
-for v in ACCOUNT_ID ACCESS_TOKEN; do
-  [ -n "${!v:-}" ] || { echo "ERROR: environment variable $v must be set" >&2; missing=1; }
-done
-[ "$missing" -eq 0 ] || exit 1
+require_env ACCOUNT_ID ACCESS_TOKEN
 
 if ! $assume_yes; then
   printf 'Delete protection policy %s? [y/N] ' "$policy_id" >&2
