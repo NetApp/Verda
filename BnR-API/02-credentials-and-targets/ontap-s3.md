@@ -57,7 +57,7 @@ The call returns a job ID. With `--wait` the script polls the credential list ev
 ```bash
 ./scripts/create-s3-credential.sh --provider ONTAP_S3 --name "<credential_name>" \
   --server "${STORAGE_SERVER}" --port "${STORAGE_PORT}" --wait \
-  && ../06-create-backup-target/create-ontap-s3-bucket.sh --bucket "<bucket_name>" --credential-name "<credential_name>"
+  && ../06-create-backup-target/scripts/create-ontap-s3-bucket.sh --bucket "<bucket_name>" --credential-name "<credential_name>"
 ```
 
 ## Verify

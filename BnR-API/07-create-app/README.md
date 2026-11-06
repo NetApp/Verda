@@ -2,7 +2,9 @@
 
 Create an application in Backup and Recovery for Kubernetes and assign a protection policy to it.
 
-Script: [`create-app-API.sh`](create-app-API.sh)
+Script: [`create-app-API.sh`](scripts/create-app-API.sh)
+
+Run the commands below from this section's `scripts/` folder (`cd scripts`).
 
 ## Prerequisites
 

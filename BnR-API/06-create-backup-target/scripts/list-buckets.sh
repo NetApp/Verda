@@ -13,8 +13,8 @@
 # empty list and is not yet tested with buckets. Read-only.
 ################################################################################
 set -euo pipefail
-# shellcheck source=../lib/bnr-common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/bnr-common.sh"
+# shellcheck source=../../lib/bnr-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -63,7 +63,7 @@ Environment (used when the matching flag is omitted):
   CONSOLE_API     API host (alias: API_HOST)
 
 Example:
-  source ../00-authentication/env.sh   # then refresh ACCESS_TOKEN
+  source ../../00-authentication/env.sh   # then refresh ACCESS_TOKEN
   $0
   $0 --provider ONTAP_S3
   $0 --json | jq '.[] | {provider, credential, buckets: (.buckets | length)}'

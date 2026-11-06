@@ -14,8 +14,8 @@
 # modes, tags and customer-managed KMS keys are not yet tested.
 ################################################################################
 set -euo pipefail
-# shellcheck source=../lib/bnr-common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/bnr-common.sh"
+# shellcheck source=../../lib/bnr-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -83,7 +83,7 @@ Environment (used when the matching flag is omitted):
   WORKSPACE_ID    Console workspace/project ID (aliases: TENANT_ID, PROJECT_ID)
 
 Example:
-  source ../00-authentication/env.sh   # then refresh ACCESS_TOKEN (see 00-authentication)
+  source ../../00-authentication/env.sh   # then refresh ACCESS_TOKEN (see 00-authentication)
 
   $0 --list-aws-accounts
   $0 --list-regions

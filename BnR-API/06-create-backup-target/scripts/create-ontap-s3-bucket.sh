@@ -7,8 +7,8 @@
 # Requires: curl, jq. Variables follow 00-authentication/env.sh.example.
 ################################################################################
 set -euo pipefail
-# shellcheck source=../lib/bnr-common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/bnr-common.sh"
+# shellcheck source=../../lib/bnr-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -62,7 +62,7 @@ Environment (used when the matching flag is omitted):
   CONSOLE_API     API host (alias: API_HOST)
 
 Example:
-  source ../00-authentication/env.sh   # then refresh ACCESS_TOKEN (see 00-authentication)
+  source ../../00-authentication/env.sh   # then refresh ACCESS_TOKEN (see 00-authentication)
 
   $0 --list-credentials
   $0 --bucket <bucket_name> --credential-name <credential_name>

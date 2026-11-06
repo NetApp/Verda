@@ -15,8 +15,8 @@
 # lock-mode field for Azure, so neither is exposed here.
 ################################################################################
 set -euo pipefail
-# shellcheck source=../lib/bnr-common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/bnr-common.sh"
+# shellcheck source=../../lib/bnr-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -81,7 +81,7 @@ Environment (used when the matching flag is omitted):
                   (alias: AZURE_SUBSCRIPTION_ID)
 
 Example:
-  source ../00-authentication/env.sh   # then refresh ACCESS_TOKEN (see 00-authentication)
+  source ../../00-authentication/env.sh   # then refresh ACCESS_TOKEN (see 00-authentication)
 
   $0 --list-subscriptions
   $0 --list-resource-groups --subscription-name <subscription_name>

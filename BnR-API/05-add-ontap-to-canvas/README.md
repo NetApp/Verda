@@ -2,7 +2,9 @@
 
 Add an on-premises ONTAP cluster to the NetApp Console storage canvas. This is a prerequisite when the cluster should act as a secondary target (disk-to-disk, 3-2-1 fan-out) for [protection policies](../04-protection-policies/README.md).
 
-Script: [`add-ontap-cluster-to-canvas.sh`](add-ontap-cluster-to-canvas.sh)
+Script: [`add-ontap-cluster-to-canvas.sh`](scripts/add-ontap-cluster-to-canvas.sh)
+
+Run the commands below from this section's `scripts/` folder (`cd scripts`).
 
 ## Required variables
 

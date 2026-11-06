@@ -8,8 +8,8 @@
 # Requires: curl, jq
 ################################################################################
 
-# shellcheck source=../lib/bnr-common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/bnr-common.sh"
+# shellcheck source=../../lib/bnr-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
 # Color codes for output
 RED='\033[0;31m'
