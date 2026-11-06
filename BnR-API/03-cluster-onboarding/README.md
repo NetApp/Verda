@@ -62,6 +62,8 @@ Or use the script [`create-occm-credential.sh`](scripts/create-occm-credential.s
 eval "$(./scripts/create-occm-credential.sh "${OCCM_NAME}")"
 ```
 
+Add `--dry-run` to print the request without creating the credential. Nothing is written to stdout, so `eval` exports nothing.
+
 ### List existing OCCM credentials
 
 ```bash

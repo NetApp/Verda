@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 3-2-1 fan-out protection policy (StorageGRID backup target)
 #
-# Usage: sgws-4-3-2-1-fanout.sh --policy-name <name>     (mandatory; an exported POLICY_NAME is ignored)
+# Usage: sgws-4-3-2-1-fanout.sh --policy-name <name> [--dry-run]     (mandatory; an exported POLICY_NAME is ignored)
 #
 # Required environment variables (the script aborts if any is unset or empty):
 #   ACCOUNT_ID                  NetApp Console organization/account ID used in the API URL and X-Account-Id header
@@ -59,15 +59,17 @@ set -euo pipefail
 
 # --- command line: --policy-name is mandatory (an exported POLICY_NAME is ignored) ---
 POLICY_NAME=""
+DRY_RUN=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --policy-name)
       { [ $# -ge 2 ] && [ -n "$2" ]; } || { echo "ERROR: --policy-name needs a value" >&2; exit 2; }
       POLICY_NAME="$2"; shift 2 ;;
-    *) echo "ERROR: unknown option '$1'. This script only takes --policy-name <name>; use create-k8s-policy.sh for the other options." >&2; exit 2 ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    *) echo "ERROR: unknown option '$1'. This script only takes --policy-name <name> and --dry-run; use create-k8s-policy.sh for the other options." >&2; exit 2 ;;
   esac
 done
-[ -n "$POLICY_NAME" ] || { echo "ERROR: --policy-name <name> is required. Usage: $(basename "$0") --policy-name <name>" >&2; exit 2; }
+[ -n "$POLICY_NAME" ] || { echo "ERROR: --policy-name <name> is required. Usage: $(basename "$0") --policy-name <name> [--dry-run]" >&2; exit 2; }
 POLICY_NAME_JSON=$(printf '%s' "$POLICY_NAME" | jq -Rs .)   # safely quoted for the JSON body
 
 REQUIRED_VARS=(ACCOUNT_ID AGENT_ID ACCESS_TOKEN SGWS_CRED_NAME SGWS_BUCKET_NAME TARGET_SYSTEM_NAME)
@@ -247,13 +249,24 @@ PROVIDER_BLOCK=$(cat <<JSON
 JSON
 )
 
-curl -s -X POST \
-  "${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "X-Account-Id: $ACCOUNT_ID" \
-  -H 'Accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d @- <<EOF | jq .
+# POST the policy. With --dry-run, print the request body instead and make no create call
+# (the read-only lookups above still ran).
+POLICIES_URL="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies"
+post_policy() {
+  if [ "$DRY_RUN" = true ]; then
+    echo "Dry run. POST $POLICIES_URL" >&2
+    jq .
+    echo "Dry run. No policy was created." >&2
+  else
+    curl -s -X POST "$POLICIES_URL" \
+      -H "Authorization: Bearer $ACCESS_TOKEN" \
+      -H "X-Account-Id: $ACCOUNT_ID" \
+      -H 'Accept: application/json' \
+      -H 'Content-Type: application/json' \
+      -d @- | jq .
+  fi
+}
+post_policy <<EOF
 {
   "policyName": $POLICY_NAME_JSON,
   "workloadType": "K8S",

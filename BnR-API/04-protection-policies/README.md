@@ -31,6 +31,8 @@ export TARGET_SYSTEM_NAME="<secondary_ontap_system_name>"
 ./create-k8s-policy.sh azure 3-2-1-fanout --policy-name "<policy_name>"
 ```
 
+Add `--dry-run` to print the request body without creating the policy. The read-only lookups (credentials, buckets, secondary system) still run, so the API variables are needed.
+
 Only `--policy-name` is mandatory on the command line. Everything else comes from environment variables or optional flags. Run `./create-k8s-policy.sh -h` for all options.
 
 ## Required variables
@@ -73,7 +75,7 @@ export SECONDARY_TARGET="<system> | <svm> | <aggregate>"
 | ------ | ------- |
 | [`create-k8s-policy.sh`](scripts/create-k8s-policy.sh) | Wrapper: picks the right script for target and type, validates options |
 | `<target>-<n>-<type>.sh` | One script per target and policy type, usable on its own with `--policy-name` |
-| [`delete-k8s-policy.sh`](scripts/delete-k8s-policy.sh) | Delete a policy by its `policyId`; asks for confirmation unless `--yes` is given |
+| [`delete-k8s-policy.sh`](scripts/delete-k8s-policy.sh) | Delete a policy by its `policyId`; asks for confirmation unless `--yes` is given; `--dry-run` previews |
 
 Each script documents its variables in its header and stops with a list of any that are missing.
 
@@ -82,6 +84,8 @@ Each script documents its variables in its header and stops with a list of any t
 ```bash
 ./delete-k8s-policy.sh <policyId>
 ```
+
+Add `--dry-run` to print the DELETE request without sending it.
 
 The server may refuse to delete a policy that is still assigned to protected applications.
 

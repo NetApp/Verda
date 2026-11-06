@@ -51,6 +51,8 @@ Optional:
                                 Both flags are required together. Each name is
                                 prefixed, then looked up. The script stops if
                                 any prefixed policy does not exist.
+  --dry-run                     Print the create and protect requests, create nothing
+                                (the cluster and policy lookups still run)
   -h, --help                    Show this help message
 
 Environment (used when the matching flag is omitted):
@@ -111,6 +113,7 @@ VM_FREEZE_MAX=""
 POLICY_NAME=""
 SITE_PREFIX=""
 POLICY_FILE=""
+DRY_RUN="false"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -130,6 +133,7 @@ while [[ $# -gt 0 ]]; do
         --policy-name)   POLICY_NAME="$2";       shift 2 ;;
         --site-prefix)   SITE_PREFIX="$2";       shift 2 ;;
         --policy-file)   POLICY_FILE="$2";       shift 2 ;;
+        --dry-run)       DRY_RUN="true";         shift ;;
         -h|--help)       usage ;;
         *) echo "Unknown option: $1"; usage ;;
     esac
@@ -393,6 +397,13 @@ create_application() {
           }
         } else {} end)')
 
+    if [ "$DRY_RUN" = "true" ]; then
+        print_message "$YELLOW" "\nDry run. POST $APPS_URL"
+        echo "$CREATE_PAYLOAD" | jq .
+        APP_ID="<new_application_id>"
+        return 0
+    fi
+
     # Execute CREATE API call
     HTTP_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$APPS_URL" \
       -H "Authorization: Bearer $ACCESS_TOKEN" \
@@ -461,6 +472,12 @@ protect_application() {
 
     PROTECT_URL="${APPS_URL}/${app_id}/protect"
 
+    if [ "$DRY_RUN" = "true" ]; then
+        print_message "$YELLOW" "\nDry run. POST $PROTECT_URL"
+        echo "$PROTECT_PAYLOAD" | jq .
+        return 0
+    fi
+
     # Execute PROTECT API call
     HTTP_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$PROTECT_URL" \
       -H "Authorization: Bearer $ACCESS_TOKEN" \
@@ -519,8 +536,10 @@ main() {
     # Step 1: Create Application
     if create_application; then
         # Wait a moment for the application to be fully created
-        print_message "$YELLOW" "\n⏳ Waiting 3 seconds before protecting application..."
-        sleep 3
+        if [ "$DRY_RUN" != "true" ]; then
+            print_message "$YELLOW" "\n⏳ Waiting 3 seconds before protecting application..."
+            sleep 3
+        fi
 
         # Step 2: Protect Application
         if [ -n "$APP_ID" ] && [ "$APP_ID" != "null" ]; then
@@ -534,6 +553,7 @@ main() {
         exit 1
     fi
 
+    [ "$DRY_RUN" != "true" ] || print_message "$YELLOW" "\nDry run. No application was created or protected."
     print_message "$GREEN" "\n=========================================="
     print_message "$GREEN" "🎉 Script execution completed!"
     print_message "$GREEN" "=========================================="

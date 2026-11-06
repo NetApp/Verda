@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Delete a Backup and Recovery for Kubernetes protection policy by its policy ID.
 #
-# Usage: delete-k8s-policy.sh <policyId> [--yes]
+# Usage: delete-k8s-policy.sh <policyId> [--yes] [--dry-run]
 #   <policyId>   the policyId returned when the policy was created (a UUID)
 #   --yes, -y    do not ask for confirmation
+#   --dry-run    print the DELETE request and exit; nothing is deleted
 #
 # Required environment variables:
 #   ACCOUNT_ID     NetApp Console organization ID (UUID) used in the API URL and X-Account-Id header
@@ -18,21 +19,29 @@ set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
-policy_id=""; assume_yes=false
+policy_id=""; assume_yes=false; dry_run=false
 while [ $# -gt 0 ]; do
   case "$1" in
-    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,/^set -euo/p' "$0" | sed '$d'; exit 0 ;;
     -y|--yes)  assume_yes=true; shift ;;
+    --dry-run) dry_run=true; shift ;;
     -*)        echo "ERROR: unknown option $1" >&2; exit 1 ;;
     *)         [ -z "$policy_id" ] || { echo "ERROR: only one policyId is allowed" >&2; exit 1; }
                policy_id="$1"; shift ;;
   esac
 done
-[ -n "$policy_id" ] || { echo "ERROR: policyId is required. Usage: $0 <policyId> [--yes]" >&2; exit 1; }
+[ -n "$policy_id" ] || { echo "ERROR: policyId is required. Usage: $0 <policyId> [--yes] [--dry-run]" >&2; exit 1; }
 [[ "$policy_id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]] \
   || { echo "ERROR: '$policy_id' is not a policy ID (expected a UUID such as 4b400c55-40ee-4920-b193-e36c6900cff7)" >&2; exit 1; }
 
 require_env ACCOUNT_ID ACCESS_TOKEN
+
+POLICY_URL="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies/$policy_id"
+if $dry_run; then
+  echo "Dry run. DELETE $POLICY_URL" >&2
+  echo "Dry run. No policy was deleted." >&2
+  exit 0
+fi
 
 if ! $assume_yes; then
   printf 'Delete protection policy %s? [y/N] ' "$policy_id" >&2
@@ -44,7 +53,7 @@ args=(-s -w '\n%{http_code}' -X DELETE
   -H "Authorization: Bearer $ACCESS_TOKEN" -H "X-Account-Id: $ACCOUNT_ID" -H 'Accept: application/json')
 [ -z "${AGENT_ID:-}" ] || args+=(-H "X-Agent-Id: $AGENT_ID")
 
-out=$(curl "${args[@]}" "${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies/$policy_id") \
+out=$(curl "${args[@]}" "$POLICY_URL") \
   || { echo "ERROR: request failed" >&2; exit 1; }
 code="${out##*$'\n'}"; body="${out%$'\n'*}"
 if [[ "$code" =~ ^2 ]]; then

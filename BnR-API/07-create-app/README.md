@@ -28,6 +28,8 @@ export CONSOLE_API="https://cloudmanager.cloud.netapp.com"   # API_HOST is accep
   --namespaces "<namespace>" --policy-name "<policy_name>"
 ```
 
+Add `--dry-run` to print the create and protect requests without sending them. The cluster and policy lookups still run.
+
 Further options: `--label-selectors`, `--app-type virtual-machine-label-selector` with the VM freeze flags, and `--site-prefix` with `--policy-file` to look up several policies by prefixed name. Run `./create-app-API.sh --help` for all options.
 
 The API response is saved to `RESPONSE_FILE` (default `/tmp/netapp_create_app_response.json`).

@@ -1,13 +1,31 @@
 #!/usr/bin/env bash
 # Create an OCCM service credential and print export statements for OCCM_ID, CLIENT_ID, CLIENT_SECRET.
 # Usage:  eval "$(./create-occm-credential.sh <occm_name>)"
+#         ./create-occm-credential.sh <occm_name> --dry-run   print the request, create nothing
 # Requires: CONSOLE_API, ACCOUNT_ID, AGENT_ID, ACCESS_TOKEN
 set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "$0")/../../lib/bnr-common.sh"
 require_env CONSOLE_API ACCOUNT_ID AGENT_ID ACCESS_TOKEN
 
-OCCM_NAME="${1:?Usage: $0 <occm_name>}"
+OCCM_NAME=""; DRY_RUN=false
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=true ;;
+    -*)        echo "ERROR: unknown option $arg. Usage: $0 <occm_name> [--dry-run]" >&2; exit 1 ;;
+    *)         [ -z "$OCCM_NAME" ] || { echo "ERROR: only one occm_name is allowed" >&2; exit 1; }
+               OCCM_NAME="$arg" ;;
+  esac
+done
+[ -n "$OCCM_NAME" ] || { echo "Usage: $0 <occm_name> [--dry-run]" >&2; exit 1; }
+
+if $DRY_RUN; then
+  # Nothing goes to stdout, so an accidental eval exports nothing.
+  echo "Dry run. POST ${CONSOLE_API}/account/${ACCOUNT_ID}/providers/cloudmanager_occmauth/api/v0.1/services" >&2
+  jq -n --arg name "${OCCM_NAME}" '{name: $name}' >&2
+  echo "Dry run. No credential was created." >&2
+  exit 0
+fi
 
 RESPONSE=$(curl --no-progress-meter --fail-with-body -X POST \
   "${CONSOLE_API}/account/${ACCOUNT_ID}/providers/cloudmanager_occmauth/api/v0.1/services" \

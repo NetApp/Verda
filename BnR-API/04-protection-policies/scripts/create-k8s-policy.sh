@@ -4,6 +4,7 @@
 #
 # Usage:
 #   create-k8s-policy.sh <target> <type> --policy-name <name> [options]   create the policy
+#   create-k8s-policy.sh <target> <type> --policy-name <name> --dry-run   print the request body, create nothing
 #   create-k8s-policy.sh <target> <type> --vars      show the variables that combination needs
 #   create-k8s-policy.sh --list                      list all supported combinations
 #   create-k8s-policy.sh --list-secondary-targets    list the secondary ONTAP targets, as in the UI drop-down
@@ -15,6 +16,10 @@
 # Mandatory:
 #   --policy-name <name>            name of the protection policy to create
 #                                   (an exported POLICY_NAME is ignored; not needed with --vars)
+#
+# Preview:
+#   --dry-run                       print the request body and do not create the policy
+#                                   (read-only lookups still run, so the API variables are needed)
 #
 # Schedules. Hourly and daily are always created; weekly and monthly only when
 # enabled (--weekly / --monthly, or any of their options). Defaults in parentheses.
@@ -69,6 +74,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 unset POLICY_NAME   # the policy name comes from --policy-name only
 policy_name=""
+dry_run=false
 
 usage() { sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'; }
 
@@ -146,6 +152,7 @@ while [ $# -gt 0 ]; do
     --vars)                     show_vars=true; shift ;;
     --list-secondary-targets)   list_secondary_targets; exit 0 ;;
     --policy-name)              need_val "$@"; policy_name="$2"; shift 2 ;;
+    --dry-run)                  dry_run=true; shift ;;
     --hourly-every)             need_val "$@"; export HOURLY_EVERY_HOURS="$2"; shift 2 ;;
     --hourly-retention)         need_val "$@"; export HOURLY_RETENTION="$2"; shift 2 ;;
     --daily-at)                 need_val "$@"; export DAILY_AT="$2"; shift 2 ;;
@@ -258,4 +265,5 @@ if [ -n "${SECONDARY_MONTHLY_RETENTION:-}${OBJECT_MONTHLY_RETENTION:-}" ] && [ "
   die "a monthly copy retention was given, but the monthly schedule is not enabled (add --monthly)"
 fi
 
+if $dry_run; then exec bash "$script" --policy-name "$policy_name" --dry-run; fi
 exec bash "$script" --policy-name "$policy_name"
