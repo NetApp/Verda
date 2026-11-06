@@ -56,10 +56,10 @@ else
 fi
 ```
 
-Or use the script [`create-occm-credential.sh`](scripts/create-occm-credential.sh):
+Or use the script [`create-occm-credential.sh`](scripts/create-occm-credential.sh), run from the `scripts/` folder (`cd scripts`):
 
 ```bash
-eval "$(./scripts/create-occm-credential.sh "${OCCM_NAME}")"
+eval "$(./create-occm-credential.sh "${OCCM_NAME}")"
 ```
 
 Add `--dry-run` to print the request without creating the credential. Nothing is written to stdout, so `eval` exports nothing.
@@ -128,6 +128,6 @@ curl -sS --location \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" | jq '.items[] | {id, name, state}'
 ```
 
-Or use [`list-clusters.sh`](scripts/list-clusters.sh).
+Or use [`list-clusters.sh`](scripts/list-clusters.sh), also from the `scripts/` folder.
 
 A newly onboarded cluster should report the state `connected` shortly after the Helm install finishes.

@@ -2,7 +2,7 @@
 
 Create Backup and Recovery for Kubernetes **protection policies** through the NetApp Console API instead of the Console UI.
 
-Prerequisites: [authentication](../00-authentication/README.md) and [account discovery](../01-account-discovery/README.md) completed. The backup target (credential, bucket or storage account) must already exist, see [credentials and targets](../02-credentials-and-targets/README.md). `ACCOUNT_ID` must be the organization ID (a UUID).
+Prerequisites: [authentication](../00-authentication/README.md) and [account discovery](../01-account-discovery/README.md) completed. The backup target must already exist: the credential ([credentials and targets](../02-credentials-and-targets/README.md)) and the bucket or storage account ([create a backup target](../04-create-backup-target/README.md)). For `disk-to-disk` and `3-2-1-fanout`, the secondary ONTAP system must be on the canvas, see [add an ONTAP cluster to the canvas](../03-add-ontap-to-canvas/README.md). `ACCOUNT_ID` must be the organization ID (a UUID).
 
 ## Policy types and targets
 
@@ -102,7 +102,7 @@ The call returns an array of all policies. The create call returns the new `poli
 
 ## Tested with
 
-Tested live against the targets and policy types below. TODO before the pull request: add the Console date and Trident Protect version.
+Tested live against the targets and policy types below, with the Console as of 2026-10-29 and Trident Protect 26.06.
 
 | Target | local-snapshot | disk-to-object | disk-to-disk | 3-2-1-fanout |
 | ------ | -------------- | -------------- | ------------ | ------------ |

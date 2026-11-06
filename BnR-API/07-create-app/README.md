@@ -9,8 +9,8 @@ Run the commands below from this section's `scripts/` folder (`cd scripts`).
 ## Prerequisites
 
 - [Authentication](../00-authentication/README.md) and [account discovery](../01-account-discovery/README.md) completed.
-- A discovered cluster, see [cluster onboarding](../03-cluster-onboarding/README.md).
-- A protection policy, see [protection policies](../04-protection-policies/README.md).
+- A discovered cluster, see [cluster onboarding](../05-cluster-onboarding/README.md).
+- A protection policy, see [protection policies](../06-protection-policies/README.md).
 
 ## Required variables
 

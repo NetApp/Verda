@@ -45,19 +45,21 @@ Set `STORAGE_PORT` to the port your ONTAP S3 server listens on, for example 443 
 
 [`scripts/create-s3-credential.sh`](scripts/create-s3-credential.sh) does the same call for ONTAP S3, StorageGRID and S3-compatible. It reads `ACCESSKEY`, `SECRETKEY`, `STORAGE_SERVER` and `STORAGE_PORT`, redacts the secret in `--dry-run`, and keeps the keys off the command line.
 
+Run the script from the `scripts/` folder (`cd scripts`).
+
 ```bash
-./scripts/create-s3-credential.sh --provider ONTAP_S3 --name "<credential_name>" \
+./create-s3-credential.sh --provider ONTAP_S3 --name "<credential_name>" \
   --server "${STORAGE_SERVER}" --port "${STORAGE_PORT}" --dry-run
-./scripts/create-s3-credential.sh --provider ONTAP_S3 --name "<credential_name>" \
+./create-s3-credential.sh --provider ONTAP_S3 --name "<credential_name>" \
   --server "${STORAGE_SERVER}" --port "${STORAGE_PORT}" --wait
 ```
 
 The call returns a job ID. With `--wait` the script polls the credential list every 5 seconds until the new name appears (up to `--timeout` seconds, default 120) and exits 0, or exits 1 on timeout. It treats "listed" as registered, because no job-status call is documented here. Use it to chain the next step:
 
 ```bash
-./scripts/create-s3-credential.sh --provider ONTAP_S3 --name "<credential_name>" \
+./create-s3-credential.sh --provider ONTAP_S3 --name "<credential_name>" \
   --server "${STORAGE_SERVER}" --port "${STORAGE_PORT}" --wait \
-  && ../06-create-backup-target/scripts/create-ontap-s3-bucket.sh --bucket "<bucket_name>" --credential-name "<credential_name>"
+  && ../../04-create-backup-target/scripts/create-ontap-s3-bucket.sh --bucket "<bucket_name>" --credential-name "<credential_name>"
 ```
 
 ## Verify

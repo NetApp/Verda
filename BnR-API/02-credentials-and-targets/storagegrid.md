@@ -39,7 +39,7 @@ curl --request POST "${CONSOLE_API}/backup-recovery/organizations/${ACCOUNT_ID}/
     }')"
 ```
 
-Script alternative: `./scripts/create-s3-credential.sh --provider SGWS --name "<sgws-cred-name>" --server "${STORAGE_SERVER}" --port "${STORAGE_PORT}"`, see [`scripts/create-s3-credential.sh`](scripts/create-s3-credential.sh).
+Script alternative, run from the `scripts/` folder: `./create-s3-credential.sh --provider SGWS --name "<sgws-cred-name>" --server "${STORAGE_SERVER}" --port "${STORAGE_PORT}"`, see [`scripts/create-s3-credential.sh`](scripts/create-s3-credential.sh).
 
 ## Verify
 

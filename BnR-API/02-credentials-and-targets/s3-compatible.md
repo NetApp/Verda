@@ -41,7 +41,7 @@ curl --request POST "${CONSOLE_API}/backup-recovery/organizations/${ACCOUNT_ID}/
 
 Set `STORAGE_PORT` to the port your endpoint listens on (443 for TLS). The response contains a `job_id` and the message "Credential registration in progress". The credential is usable once that job has finished.
 
-Script alternative: `./scripts/create-s3-credential.sh --provider S3_COMPATIBLE --name "<credential_name>" --server "${STORAGE_SERVER}" --port "${STORAGE_PORT}"`, see [`scripts/create-s3-credential.sh`](scripts/create-s3-credential.sh).
+Script alternative, run from the `scripts/` folder: `./create-s3-credential.sh --provider S3_COMPATIBLE --name "<credential_name>" --server "${STORAGE_SERVER}" --port "${STORAGE_PORT}"`, see [`scripts/create-s3-credential.sh`](scripts/create-s3-credential.sh).
 
 ## Verify
 
@@ -55,4 +55,4 @@ curl -sS --get "${CONSOLE_API}/backup-recovery/organizations/${ACCOUNT_ID}/v1/cr
   --data-urlencode "provider=S3_COMPATIBLE" | jq
 ```
 
-Next: [create the bucket](../06-create-backup-target/README.md#s3-compatible).
+Next: [create the bucket](../04-create-backup-target/README.md#s3-compatible).

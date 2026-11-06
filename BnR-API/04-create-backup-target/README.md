@@ -1,11 +1,11 @@
 # Create a backup target (bucket)
 
-Create the object-storage bucket that Backup and Recovery uses as an offsite backup target. The bucket is the destination for the disk-to-object and 3-2-1 fan-out [protection policies](../04-protection-policies/README.md).
+Create the object-storage bucket that Backup and Recovery uses as an offsite backup target. The bucket is the destination for the disk-to-object and 3-2-1 fan-out [protection policies](../06-protection-policies/README.md).
 
 | Target | Script | Status |
 | ------ | ------ | ------ |
 | ONTAP S3 | [`create-ontap-s3-bucket.sh`](scripts/create-ontap-s3-bucket.sh) | Tested 2026-10-27 (create) and 2026-10-28 (`--wait`) without object lock: bucket created and listed by `object-storage`. Object lock untested |
-| AWS S3 | [`create-aws-s3-bucket.sh`](scripts/create-aws-s3-bucket.sh) | Tested 2026-10-28 with default encryption, no object lock and no tags: account-name lookup, create and `--wait`. `--tag` was tested 2026-10-30: the request was accepted and the bucket listed, but the list does not show tags, so check them in the Console or AWS. Object lock and customer-managed KMS keys are not yet tested |
+| AWS S3 | [`create-aws-s3-bucket.sh`](scripts/create-aws-s3-bucket.sh) | Tested 2026-10-28 (account-name lookup, create, `--wait`) and 2026-10-30 (`--tag`). Object lock and customer-managed KMS keys untested. The list does not show tags, so check them in the Console or AWS |
 | Azure Blob | [`create-azure-storage-account.sh`](scripts/create-azure-storage-account.sh) | Tested 2026-10-28: resource-group lookup, create and `--wait`, with and without `--object-lock` (the request is accepted and the account is listed). The list does not show the lock state, so check it in the Console or the Azure portal |
 | StorageGRID | [`create-storagegrid-bucket.sh`](scripts/create-storagegrid-bucket.sh) | Not yet tested against StorageGRID |
 | S3-compatible | [`create-s3-compatible-bucket.sh`](scripts/create-s3-compatible-bucket.sh) | Tested 2026-10-28 without object lock: bucket created and listed. Object lock untested. Needs a Backup and Recovery version with S3-compatible support |
@@ -31,7 +31,7 @@ Optional: `WORKSPACE_ID`, sent by the AWS script as `x-netapp-workspace-id`, as 
 
 Every script supports `--dry-run` (prints the request body, no API call) and `--help`.
 
-Every create call returns a job ID, so the bucket may not exist yet when the script exits. Add `--wait` to poll the `object-storage` list every 5 seconds until the new bucket appears (up to `--timeout` seconds, default 120). The script exits 0 when the bucket is listed and 1 on timeout, so it can be chained into the next step, for example creating a protection policy in [04-protection-policies](../04-protection-policies/README.md). No job-status call is documented here, so "listed" is the signal. The AWS and Azure list calls need extra query parameters (`aws-account-id`, or `subscription` and `resource-group`), so those two scripts poll with the values you passed. The polling is the `wait_for_object_store` function in [`lib/bnr-common.sh`](../lib/bnr-common.sh).
+Every create call returns a job ID, so the bucket may not exist yet when the script exits. Add `--wait` to poll the `object-storage` list every 5 seconds until the new bucket appears (up to `--timeout` seconds, default 120). The script exits 0 when the bucket is listed and 1 on timeout, so it can be chained into the next step, for example creating a protection policy in [06-protection-policies](../06-protection-policies/README.md). No job-status call is documented here, so "listed" is the signal. The AWS and Azure list calls need extra query parameters (`aws-account-id`, or `subscription` and `resource-group`), so those two scripts poll with the values you passed. The polling is the `wait_for_object_store` function in [`lib/bnr-common.sh`](../lib/bnr-common.sh).
 
 ## ONTAP S3
 

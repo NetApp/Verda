@@ -32,7 +32,7 @@ usage() {
 Usage: $0 [OPTIONS]
 
 Add an object-storage credential to Backup and Recovery. The credential holds
-the endpoint, port and keys that the bucket scripts in 06-create-backup-target
+the endpoint, port and keys that the bucket scripts in 04-create-backup-target
 refer to by name.
 
 Required:
