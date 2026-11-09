@@ -8,6 +8,8 @@
 # Requires: curl, jq
 ################################################################################
 
+set -euo pipefail
+
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
@@ -38,7 +40,8 @@ Optional:
   --api-host      URL           API host (default: CONSOLE_API, else
                                 https://cloudmanager.cloud.netapp.com)
   --response-file FILE          Where to save the create response
-                                (default: /tmp/netapp_create_app_response.json)
+                                (default: a new private file in \$TMPDIR or /tmp;
+                                the path is printed)
   --label-selectors SEL1[,SEL2,..]  Comma-separated label selectors, for example color=green
   --app-type      TYPE          virtual-machine-label-selector
                                 Selects virtual machines by namespace and label.
@@ -60,7 +63,7 @@ Environment (used when the matching flag is omitted):
   ACCOUNT_ID      Account / organization ID (alias: ORG_ID)
   AGENT_ID        Console agent ID
   CONSOLE_API     API host (alias: API_HOST)
-  RESPONSE_FILE
+  RESPONSE_FILE   Where to save the create response
 
 Example:
   export ACCESS_TOKEN='eyJ...'
@@ -101,7 +104,7 @@ ORG_ID="${ORG_ID:-}"
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AGENT_ID="${AGENT_ID:-}"
 CONSOLE_API="${CONSOLE_API:-${API_HOST:-https://cloudmanager.cloud.netapp.com}}"
-RESPONSE_FILE="${RESPONSE_FILE:-/tmp/netapp_create_app_response.json}"
+RESPONSE_FILE="${RESPONSE_FILE:-}"   # empty: a private temp file is created when the response is saved
 CLUSTER_NAME=""
 APP_NAME=""
 NAMESPACES=""
@@ -117,22 +120,22 @@ DRY_RUN="false"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --org-id)        ORG_ID="$2";            shift 2 ;;
-        --account-id)    ACCOUNT_ID="$2";        shift 2 ;;
-        --agent-id)      AGENT_ID="$2";          shift 2 ;;
-        --api-host)      CONSOLE_API="$2";          shift 2 ;;
-        --response-file) RESPONSE_FILE="$2";     shift 2 ;;
-        --cluster-name)  CLUSTER_NAME="$2";      shift 2 ;;
-        --app-name)      APP_NAME="$2";          shift 2 ;;
-        --namespaces)    NAMESPACES="$2";        shift 2 ;;
-        --label-selectors) LABEL_SELECTORS="$2"; shift 2 ;;
-        --app-type)      APP_TYPE="$2";          shift 2 ;;
+        --org-id)        ORG_ID="${2:?missing value for $1}";            shift 2 ;;
+        --account-id)    ACCOUNT_ID="${2:?missing value for $1}";        shift 2 ;;
+        --agent-id)      AGENT_ID="${2:?missing value for $1}";          shift 2 ;;
+        --api-host)      CONSOLE_API="${2:?missing value for $1}";          shift 2 ;;
+        --response-file) RESPONSE_FILE="${2:?missing value for $1}";     shift 2 ;;
+        --cluster-name)  CLUSTER_NAME="${2:?missing value for $1}";      shift 2 ;;
+        --app-name)      APP_NAME="${2:?missing value for $1}";          shift 2 ;;
+        --namespaces)    NAMESPACES="${2:?missing value for $1}";        shift 2 ;;
+        --label-selectors) LABEL_SELECTORS="${2:?missing value for $1}"; shift 2 ;;
+        --app-type)      APP_TYPE="${2:?missing value for $1}";          shift 2 ;;
         --skip-vm-freeze) SKIP_VM_FREEZE="true"; shift ;;
         --simultaneous-vm-freeze) SIMULTANEOUS_VM_FREEZE="true"; shift ;;
-        --vm-freeze-max) VM_FREEZE_MAX="$2";     shift 2 ;;
-        --policy-name)   POLICY_NAME="$2";       shift 2 ;;
-        --site-prefix)   SITE_PREFIX="$2";       shift 2 ;;
-        --policy-file)   POLICY_FILE="$2";       shift 2 ;;
+        --vm-freeze-max) VM_FREEZE_MAX="${2:?missing value for $1}";     shift 2 ;;
+        --policy-name)   POLICY_NAME="${2:?missing value for $1}";       shift 2 ;;
+        --site-prefix)   SITE_PREFIX="${2:?missing value for $1}";       shift 2 ;;
+        --policy-file)   POLICY_FILE="${2:?missing value for $1}";       shift 2 ;;
         --dry-run)       DRY_RUN="true";         shift ;;
         -h|--help)       usage ;;
         *) echo "Unknown option: $1"; usage ;;
@@ -213,15 +216,15 @@ resolve_cluster_id() {
     print_message "$BLUE" "\nLooking up cluster ID for '$CLUSTER_NAME'..."
 
     local response
-    response=$(api_get "${BASE_PATH}/clusters")
+    response=$(api_get "${BASE_PATH}/clusters") || true
 
     CLUSTER_ID=$(echo "$response" | jq -r --arg name "$CLUSTER_NAME" \
-      '[if type == "array" then .[] else (.items[]? // empty) end] | map(select(.name == $name)) | .[0].id // empty')
+      '[if type == "array" then .[] else (.items[]? // empty) end] | map(select(.name == $name)) | .[0].id // empty') || true
 
     if [ -z "$CLUSTER_ID" ]; then
         print_message "$RED" "Error: Could not find a cluster named '$CLUSTER_NAME'."
         print_message "$YELLOW" "Available clusters:"
-        echo "$response" | jq -r '[if type == "array" then .[] else (.items[]? // empty) end] | .[] | "  \(.name) (\(.id))"' 2>/dev/null
+        echo "$response" | jq -r '[if type == "array" then .[] else (.items[]? // empty) end] | .[] | "  \(.name) (\(.id))"' 2>/dev/null || true
         return 1
     fi
 
@@ -236,15 +239,15 @@ resolve_policy_id() {
     print_message "$BLUE" "Looking up policy ID for '$POLICY_NAME'..."
 
     local response
-    response=$(api_get "${BASE_PATH}/kubernetes/policies")
+    response=$(api_get "${BASE_PATH}/kubernetes/policies") || true
 
     POLICY_ID=$(echo "$response" | jq -r --arg name "$POLICY_NAME" \
-      '[if type == "array" then .[] else (.items[]? // empty) end] | map(select(.policyName == $name)) | .[0].policyId // empty')
+      '[if type == "array" then .[] else (.items[]? // empty) end] | map(select(.policyName == $name)) | .[0].policyId // empty') || true
 
     if [ -z "$POLICY_ID" ]; then
         print_message "$RED" "Error: Could not find a policy named '$POLICY_NAME'."
         print_message "$YELLOW" "Available policies:"
-        echo "$response" | jq -r '[if type == "array" then .[] else (.items[]? // empty) end] | .[] | "  \(.policyName) (\(.policyId))"' 2>/dev/null
+        echo "$response" | jq -r '[if type == "array" then .[] else (.items[]? // empty) end] | .[] | "  \(.policyName) (\(.policyId))"' 2>/dev/null || true
         return 1
     fi
 
@@ -280,7 +283,7 @@ verify_site_policies() {
     done
 
     local response
-    response=$(api_get "${BASE_PATH}/kubernetes/policies")
+    response=$(api_get "${BASE_PATH}/kubernetes/policies") || true
 
     if ! echo "$response" | jq -e 'type == "array" or (.items | type == "array")' >/dev/null 2>&1; then
         print_message "$RED" "Error: could not list protection policies."
@@ -294,7 +297,7 @@ verify_site_policies() {
     for suffix in "${suffixes[@]}"; do
         name="${SITE_PREFIX}${suffix}"
         policy_id=$(echo "$response" | jq -r --arg name "$name" \
-          '[if type == "array" then .[] else (.items[]? // empty) end] | map(select(.policyName == $name)) | .[0].policyId // empty')
+          '[if type == "array" then .[] else (.items[]? // empty) end] | map(select(.policyName == $name)) | .[0].policyId // empty') || true
         if [ -z "$policy_id" ]; then
             missing+=("$name")
         else
@@ -411,14 +414,17 @@ create_application() {
       -H "Accept: application/json" \
       -H "x-account-id: $ACCOUNT_ID" \
       -H "x-agent-id: $AGENT_ID" \
-      -d "$CREATE_PAYLOAD")
+      -d "$CREATE_PAYLOAD") || true
 
     # Extract HTTP status code
-    HTTP_STATUS=$(echo "$HTTP_RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
-    RESPONSE_BODY=$(echo "$HTTP_RESPONSE" | sed '/HTTP_STATUS/d')
+    HTTP_STATUS=$(echo "$HTTP_RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2) || true
+    HTTP_STATUS="${HTTP_STATUS:-000}"
+    RESPONSE_BODY=$(echo "$HTTP_RESPONSE" | sed '/HTTP_STATUS/d') || true
 
-    # Save response to file
+    # Save response to file (a private temp file unless --response-file / RESPONSE_FILE is set)
+    [ -n "$RESPONSE_FILE" ] || RESPONSE_FILE=$(mktemp "${TMPDIR:-/tmp}/netapp_create_app_response.XXXXXX")
     echo "$RESPONSE_BODY" > "$RESPONSE_FILE"
+    echo "Response saved to: $RESPONSE_FILE"
 
     # Check if request was successful
     if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
@@ -429,7 +435,7 @@ create_application() {
         echo "$RESPONSE_BODY" | jq '.' 2>/dev/null || echo "$RESPONSE_BODY"
 
         # Extract APP_ID from response (adjust based on actual API response structure)
-        APP_ID=$(echo "$RESPONSE_BODY" | jq -r '.id // .appId // .applicationId' 2>/dev/null)
+        APP_ID=$(echo "$RESPONSE_BODY" | jq -r '.id // .appId // .applicationId' 2>/dev/null) || true
 
         if [ -z "$APP_ID" ] || [ "$APP_ID" == "null" ]; then
             print_message "$YELLOW" "\n️⚠️  Warning: Could not extract APP_ID from response."
@@ -485,11 +491,12 @@ protect_application() {
       -H "Accept: application/json" \
       -H "x-account-id: $ACCOUNT_ID" \
       -H "x-agent-id: $AGENT_ID" \
-      -d "$PROTECT_PAYLOAD")
+      -d "$PROTECT_PAYLOAD") || true
 
     # Extract HTTP status code
-    HTTP_STATUS=$(echo "$HTTP_RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
-    RESPONSE_BODY=$(echo "$HTTP_RESPONSE" | sed '/HTTP_STATUS/d')
+    HTTP_STATUS=$(echo "$HTTP_RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2) || true
+    HTTP_STATUS="${HTTP_STATUS:-000}"
+    RESPONSE_BODY=$(echo "$HTTP_RESPONSE" | sed '/HTTP_STATUS/d') || true
 
     # Check if request was successful
     if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then

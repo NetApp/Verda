@@ -24,7 +24,7 @@ CONSOLE_API="${CONSOLE_API:-${API_HOST:-https://cloudmanager.cloud.netapp.com}}"
 ORG_ID="${ORG_ID:-}"
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AGENT_ID="${AGENT_ID:-}"
-RESPONSE_FILE="${RESPONSE_FILE:-/tmp/netapp_add_ontap_cluster_response.json}"
+RESPONSE_FILE="${RESPONSE_FILE:-}"   # empty: the private temp file with the response is kept
 
 usage() {
     cat <<EOF
@@ -65,7 +65,8 @@ Environment (used when the matching flag is omitted):
   CLUSTER_NAME       Canvas working-environment name (default: CLUSTER_ADDRESS)
   WORKSPACE_ID       Console workspace/project ID (aliases: TENANT_ID, PROJECT_ID)
   PROJECT_NAME       Console project name used to look up the workspace ID
-  RESPONSE_FILE      Where to save the API response
+  RESPONSE_FILE      Where to save the API response (default: a new private file in
+                     \$TMPDIR or /tmp; the path is printed)
 
 Example:
   source ../../00-authentication/env.sh   # then refresh ACCESS_TOKEN (see 00-authentication)
@@ -225,7 +226,7 @@ if [ "$DRY_RUN" = "true" ]; then
 fi
 
 print_message "$BLUE" "\nAdding ONTAP cluster at ${WORKING_ENVIRONMENTS_URL}"
-BODY_FILE=$(mktemp)
+BODY_FILE=$(mktemp "${TMPDIR:-/tmp}/netapp_add_ontap_cluster_response.XXXXXX")
 HTTP_STATUS=$(curl -sS -o "$BODY_FILE" -w '%{http_code}' -X POST "$WORKING_ENVIRONMENTS_URL" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
     -H "Content-Type: application/json" \
@@ -234,7 +235,7 @@ HTTP_STATUS=$(curl -sS -o "$BODY_FILE" -w '%{http_code}' -X POST "$WORKING_ENVIR
     -H "x-agent-id: $AGENT_ID" \
     -d "$PAYLOAD")
 
-mv "$BODY_FILE" "$RESPONSE_FILE"
+if [ -z "$RESPONSE_FILE" ]; then RESPONSE_FILE="$BODY_FILE"; else mv "$BODY_FILE" "$RESPONSE_FILE"; fi
 
 if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
     print_message "$GREEN" "ONTAP cluster add request accepted."

@@ -35,7 +35,7 @@ The password is redacted in the output and no API call is made.
   --cluster-user-name admin --name "<canvas_name>"
 ```
 
-The API response is saved to `RESPONSE_FILE` (default `/tmp/netapp_add_ontap_cluster_response.json`). HTTP 2xx means the request was accepted, not that discovery has finished.
+The API response is saved to `RESPONSE_FILE` (default: a new private temporary file; the path is printed). HTTP 2xx means the request was accepted, not that discovery has finished.
 
 ## Verify
 
