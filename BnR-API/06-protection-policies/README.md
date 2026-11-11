@@ -37,7 +37,7 @@ Only `--policy-name` is mandatory on the command line. Everything else comes fro
 
 ## Required variables
 
-All combinations need `CONSOLE_API` (optional, defaults to `https://cloudmanager.cloud.netapp.com`), `ACCOUNT_ID`, `AGENT_ID` and `ACCESS_TOKEN`. In addition:
+All combinations need `CONSOLE_API` (optional, defaults to `https://cloudmanager.cloud.netapp.com`), `ACCOUNT_ID`, `AGENT_ID` and `ACCESS_TOKEN`. `BEARER_TOKEN`, `ORG_ID` and `API_HOST` are accepted as aliases for `ACCESS_TOKEN`, `ACCOUNT_ID` and `CONSOLE_API`. In addition:
 
 | Target | Variables |
 | ------ | --------- |

@@ -28,6 +28,9 @@
 #   PARTIAL_BACKUP               Allow partial backups: true or false (false)
 #
 set -euo pipefail
+# shellcheck source=../../lib/bnr-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
+bnr_env_aliases
 
 # --- command line: --policy-name is mandatory (an exported POLICY_NAME is ignored) ---
 POLICY_NAME=""
@@ -45,14 +48,9 @@ done
 POLICY_NAME_JSON=$(printf '%s' "$POLICY_NAME" | jq -Rs .)   # safely quoted for the JSON body
 
 REQUIRED_VARS=(ACCOUNT_ID AGENT_ID ACCESS_TOKEN AWS_ACCOUNT_ID AWS_BACKUP_TARGET)
-missing=()
-for v in "${REQUIRED_VARS[@]}"; do [ -n "${!v:-}" ] || missing+=("$v"); done
-if [ ${#missing[@]} -gt 0 ]; then
-  echo "ERROR: the following environment variables must be set before running $(basename "$0"):" >&2
-  for v in "${missing[@]}"; do echo "  $v  -  $(grep -m1 "^#   $v " "$0" | sed -E "s/^#   $v +//")" >&2; done
-  echo "Example: export ${missing[0]}=<value>" >&2
-  exit 1
-fi
+needed=()
+for v in "${REQUIRED_VARS[@]}"; do needed+=("$v"); done
+require_env_documented "$0" "${needed[@]}"
 
 # --- schedule fragments: hourly and daily always; weekly and monthly only when enabled ---
 SCHEDULES=$(cat <<JSON
@@ -96,7 +94,7 @@ JSON
 
 # POST the policy. With --dry-run, print the request body instead and make no create call
 # (the read-only lookups above still ran).
-POLICIES_URL="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies"
+POLICIES_URL="${CONSOLE_API}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies"
 post_policy() {
   if [ "$DRY_RUN" = true ]; then
     echo "Dry run. POST $POLICIES_URL" >&2

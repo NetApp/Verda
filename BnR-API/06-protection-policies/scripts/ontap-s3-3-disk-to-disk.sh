@@ -51,6 +51,9 @@
 # TARGET_STORAGE_SYSTEM_UUID yourself.
 #
 set -euo pipefail
+# shellcheck source=../../lib/bnr-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
+bnr_env_aliases
 
 # --- command line: --policy-name is mandatory (an exported POLICY_NAME is ignored) ---
 POLICY_NAME=""
@@ -68,14 +71,9 @@ done
 POLICY_NAME_JSON=$(printf '%s' "$POLICY_NAME" | jq -Rs .)   # safely quoted for the JSON body
 
 REQUIRED_VARS=(ACCOUNT_ID AGENT_ID ACCESS_TOKEN ONTAP_BUCKET_NAME ONTAP_CRED_NAME TARGET_SYSTEM_NAME)
-missing=()
-for v in "${REQUIRED_VARS[@]}"; do [ "$v" = TARGET_SYSTEM_NAME ] && [ -n "${TARGET_SYSTEM_ID:-}${SECONDARY_TARGET:-}" ] && continue; [ "$v" = ONTAP_CRED_NAME ] && [ -n "${ONTAP_S3_SERVER_URL:-}" ] && continue; [ -n "${!v:-}" ] || missing+=("$v"); done
-if [ ${#missing[@]} -gt 0 ]; then
-  echo "ERROR: the following environment variables must be set before running $(basename "$0"):" >&2
-  for v in "${missing[@]}"; do echo "  $v  -  $(grep -m1 "^#   $v " "$0" | sed -E "s/^#   $v +//")" >&2; done
-  echo "Example: export ${missing[0]}=<value>" >&2
-  exit 1
-fi
+needed=()
+for v in "${REQUIRED_VARS[@]}"; do [ "$v" = TARGET_SYSTEM_NAME ] && [ -n "${TARGET_SYSTEM_ID:-}${SECONDARY_TARGET:-}" ] && continue; [ "$v" = ONTAP_CRED_NAME ] && [ -n "${ONTAP_S3_SERVER_URL:-}" ] && continue; needed+=("$v"); done
+require_env_documented "$0" "${needed[@]}"
 
 # --- schedule fragments: hourly and daily always; weekly and monthly only when enabled ---
 SCHEDULES=$(cat <<JSON
@@ -132,18 +130,9 @@ fi
 # --- ONTAP S3 target: look up the server address from the credential name ----
 # (mirrors the UI: GET .../v1/credentials?provider=ONTAP_S3, then GET .../v1/object-storage?...)
 # Skipped when ONTAP_S3_SERVER_URL is set.
-api_get() {  # $1 = URL, further args = extra headers ("Name: value"); prints the body, exits on a non-2xx status
-  local url="$1" out code body h; shift
-  local args=(-s -w '\n%{http_code}' -H "Authorization: Bearer $ACCESS_TOKEN" -H "X-Agent-Id: $AGENT_ID" -H 'Accept: application/json')
-  for h in "$@"; do args+=(-H "$h"); done
-  out=$(curl "${args[@]}" "$url") || { echo "ERROR: request failed: $url" >&2; exit 1; }
-  code="${out##*$'\n'}"; body="${out%$'\n'*}"
-  [[ "$code" =~ ^2 ]] || { echo "ERROR: GET $url returned HTTP $code" >&2; echo "$body" >&2; exit 1; }
-  printf '%s' "$body"
-}
 if [ -z "${ONTAP_S3_SERVER_URL:-}" ]; then
-  BASE="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1"
-  creds=$(api_get "$BASE/credentials?provider=ONTAP_S3")
+  BASE="/backup-recovery/organizations/$ACCOUNT_ID/v1"
+  creds=$(api_get_or_die "$BASE/credentials?provider=ONTAP_S3")
   match=$(printf '%s' "$creds" | jq -c --arg n "$ONTAP_CRED_NAME" '[.[] | select(.credential_name == $n)]')
   if [ "$(printf '%s' "$match" | jq length)" -ne 1 ]; then
     echo "ERROR: expected exactly one ONTAP S3 credential named '$ONTAP_CRED_NAME'. Available credentials:" >&2
@@ -156,7 +145,7 @@ if [ -z "${ONTAP_S3_SERVER_URL:-}" ]; then
     echo "ERROR: credential '$ONTAP_CRED_NAME' has no storage_server_name / credential_uuid in the response:" >&2
     printf '%s' "$match" | jq -c '.[0] | del(.access_key)' >&2; exit 1
   fi
-  buckets=$(api_get "$BASE/object-storage?provider=ONTAP_S3&credential-id=$cred_id")
+  buckets=$(api_get_or_die "$BASE/object-storage?provider=ONTAP_S3&credential-id=$cred_id")
   if ! printf '%s' "$buckets" | jq -e --arg b "$ONTAP_BUCKET_NAME" 'any(.[]; .object_store_name == $b)' >/dev/null; then
     echo "ERROR: bucket '$ONTAP_BUCKET_NAME' not found for credential '$ONTAP_CRED_NAME'. Available buckets:" >&2
     printf '%s' "$buckets" | jq -r '.[] | "  " + .object_store_name' >&2
@@ -180,8 +169,8 @@ fi
 # Values you set yourself are kept; only the missing ones are looked up.
 if [ -z "${TARGET_SYSTEM_ID:-}" ] || [ -z "${TARGET_SYSTEM_NAME:-}" ] || [ -z "${TARGET_CLUSTER_ID:-}" ] \
    || [ -z "${TARGET_STORAGE_SYSTEM_UUID:-}" ] || [ -z "${TARGET_SVM:-}" ] || [ -z "${TARGET_AGGREGATE:-}" ]; then
-  CBS="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/account/$ACCOUNT_ID/providers/cloudmanager_cbs/api"
-  wes=$(api_get "$CBS/v1/working-environment" "X-Account-Id: $ACCOUNT_ID")
+  CBS="/account/$ACCOUNT_ID/providers/cloudmanager_cbs/api"
+  wes=$(api_get_or_die "$CBS/v1/working-environment")
   if [ -n "${TARGET_SYSTEM_ID:-}" ]; then key="$TARGET_SYSTEM_ID"; field=id; else key="$TARGET_SYSTEM_NAME"; field=name; fi
   we=$(printf '%s' "$wes" | jq -c --arg k "$key" --arg f "$field" '[(."working-environment" // [])[] | select(.[$f] == $k)]')
   if [ "$(printf '%s' "$we" | jq length)" -ne 1 ]; then
@@ -195,7 +184,7 @@ if [ -z "${TARGET_SYSTEM_ID:-}" ] || [ -z "${TARGET_SYSTEM_NAME:-}" ] || [ -z "$
     TARGET_CLUSTER_ID=$(printf '%s' "$we" | jq -r '.[0]["cluster-uuid"] // empty')
     [ -n "$TARGET_CLUSTER_ID" ] || { echo "ERROR: system '$TARGET_SYSTEM_NAME' has no cluster-uuid in the response" >&2; exit 1; }
   fi
-  svms=$(api_get "$CBS/v2/working-environment/$TARGET_SYSTEM_ID/svm" "X-Account-Id: $ACCOUNT_ID")
+  svms=$(api_get_or_die "$CBS/v2/working-environment/$TARGET_SYSTEM_ID/svm")
   if [ -n "${TARGET_SVM:-}" ]; then
     svm=$(printf '%s' "$svms" | jq -c --arg n "$TARGET_SVM" '[(.svm // [])[] | select(.name == $n)]')
   else
@@ -228,7 +217,7 @@ JSON
 
 # POST the policy. With --dry-run, print the request body instead and make no create call
 # (the read-only lookups above still ran).
-POLICIES_URL="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies"
+POLICIES_URL="${CONSOLE_API}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies"
 post_policy() {
   if [ "$DRY_RUN" = true ]; then
     echo "Dry run. POST $POLICIES_URL" >&2

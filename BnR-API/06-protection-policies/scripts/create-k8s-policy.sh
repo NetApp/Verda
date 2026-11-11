@@ -17,6 +17,9 @@
 #   --policy-name <name>            name of the protection policy to create
 #                                   (an exported POLICY_NAME is ignored; not needed with --vars)
 #
+# API variables: ACCESS_TOKEN, ACCOUNT_ID, AGENT_ID and CONSOLE_API (default
+# https://cloudmanager.cloud.netapp.com). Aliases: BEARER_TOKEN, ORG_ID, API_HOST.
+#
 # Preview:
 #   --dry-run                       print the request body and do not create the policy
 #                                   (read-only lookups still run, so the API variables are needed)
@@ -72,6 +75,9 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../lib/bnr-common.sh
+source "$DIR/../../lib/bnr-common.sh"
+bnr_env_aliases
 unset POLICY_NAME   # the policy name comes from --policy-name only
 policy_name=""
 dry_run=false
@@ -93,19 +99,11 @@ script_for() {  # $1=target $2=type
 die() { echo "ERROR: $*" >&2; echo "Run '$(basename "$0") --help' for usage." >&2; exit 2; }
 
 list_secondary_targets() {
-  for v in ACCOUNT_ID AGENT_ID ACCESS_TOKEN; do [ -n "${!v:-}" ] || die "$v must be set to list the secondary targets"; done
-  CBS="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/account/$ACCOUNT_ID/providers/cloudmanager_cbs/api"
-  api_get() {  # $1 = URL; prints the body, exits on a non-2xx status
-    local out code body
-    out=$(curl -s -w '\n%{http_code}' -H "Authorization: Bearer $ACCESS_TOKEN" -H "X-Agent-Id: $AGENT_ID" \
-      -H "X-Account-Id: $ACCOUNT_ID" -H 'Accept: application/json' "$1") || { echo "ERROR: request failed: $1" >&2; exit 1; }
-    code="${out##*$'\n'}"; body="${out%$'\n'*}"
-    [[ "$code" =~ ^2 ]] || { echo "ERROR: GET $1 returned HTTP $code" >&2; echo "$body" >&2; exit 1; }
-    printf '%s' "$body"
-  }
-  wes=$(api_get "$CBS/v1/working-environment")
+  require_env ACCOUNT_ID AGENT_ID ACCESS_TOKEN
+  CBS="/account/$ACCOUNT_ID/providers/cloudmanager_cbs/api"
+  wes=$(api_get_or_die "$CBS/v1/working-environment")
   printf '%s' "$wes" | jq -r '(."working-environment" // [])[] | [.id, .name] | @tsv' | while IFS=$'\t' read -r id name; do
-    api_get "$CBS/v2/working-environment/$id/svm" | jq -r --arg s "$name" '(.svm // [])[] | .name as $v | (.aggregates // [])[] | "\($s) | \($v) | \(.name)"'
+    api_get_or_die "$CBS/v2/working-environment/$id/svm" | jq -r --arg s "$name" '(.svm // [])[] | .name as $v | (.aggregates // [])[] | "\($s) | \($v) | \(.name)"'
   done
 }
 
@@ -116,6 +114,9 @@ case "${1:-}" in
     exit 0 ;;
   --list-secondary-targets) list_secondary_targets; exit 0 ;;
 esac
+
+# -h/--help anywhere among the first two words (e.g. "ontap --help") shows the usage
+for w in "${1:-}" "${2:-}"; do case "$w" in -h|--help) usage; exit 0 ;; esac; done
 
 target="${1:-}"; type="${2:-}"; shift $(( $# < 2 ? $# : 2 ))
 
@@ -150,6 +151,7 @@ need_val() { [ $# -ge 2 ] && [ -n "${2:-}" ] || die "option $1 needs a value"; }
 while [ $# -gt 0 ]; do
   case "$1" in
     --vars)                     show_vars=true; shift ;;
+    -h|--help)                  usage; exit 0 ;;
     --list-secondary-targets)   list_secondary_targets; exit 0 ;;
     --policy-name)              need_val "$@"; policy_name="$2"; shift 2 ;;
     --dry-run)                  dry_run=true; shift ;;

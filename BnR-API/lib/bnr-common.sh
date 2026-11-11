@@ -58,3 +58,43 @@ api_get() {
   [ -z "${ACCOUNT_ID:-}" ] || args+=(-H "x-account-id: ${ACCOUNT_ID}")
   curl "${args[@]}"
 }
+
+# Accept the alternative variable names (BEARER_TOKEN, ORG_ID, API_HOST) and
+# default the API host. Call it before require_env.
+bnr_env_aliases() {
+  ACCESS_TOKEN="${ACCESS_TOKEN:-${BEARER_TOKEN:-}}"
+  ACCOUNT_ID="${ACCOUNT_ID:-${ORG_ID:-}}"
+  CONSOLE_API="${CONSOLE_API:-${API_HOST:-https://cloudmanager.cloud.netapp.com}}"
+  CONSOLE_API="${CONSOLE_API%/}"
+}
+
+# Like require_env, but lists every missing variable together with its
+# description, taken from the "#   VAR   description" lines in the header of the
+# calling script. Usage: require_env_documented "$0" VAR...
+require_env_documented() {
+  local script=$1 v missing=()
+  shift
+  for v in "$@"; do
+    [ -n "${!v:-}" ] || missing+=("$v")
+  done
+  if [ "${#missing[@]}" -gt 0 ]; then
+    echo "ERROR: the following environment variables must be set before running $(basename "$script"):" >&2
+    for v in "${missing[@]}"; do
+      echo "  $v  -  $(grep -m1 "^#   $v " "$script" | sed -E "s/^#   $v +//")" >&2
+    done
+    echo "Example: export ${missing[0]}=<value>" >&2
+    exit 1
+  fi
+}
+
+# api_get, but a failed call prints the API's error body to stderr and fails.
+# Usage: body=$(api_get_or_die "/path")   (callers use set -e)
+api_get_or_die() {
+  local body
+  body=$(api_get "$1") || {
+    echo "ERROR: GET ${CONSOLE_API}$1 failed" >&2
+    [ -z "$body" ] || printf '%s\n' "$body" >&2
+    exit 1
+  }
+  printf '%s' "$body"
+}

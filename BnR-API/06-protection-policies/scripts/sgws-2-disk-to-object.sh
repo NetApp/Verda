@@ -34,6 +34,9 @@
 #   PARTIAL_BACKUP               Allow partial backups: true or false (false)
 #
 set -euo pipefail
+# shellcheck source=../../lib/bnr-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
+bnr_env_aliases
 
 # --- command line: --policy-name is mandatory (an exported POLICY_NAME is ignored) ---
 POLICY_NAME=""
@@ -51,14 +54,9 @@ done
 POLICY_NAME_JSON=$(printf '%s' "$POLICY_NAME" | jq -Rs .)   # safely quoted for the JSON body
 
 REQUIRED_VARS=(ACCOUNT_ID AGENT_ID ACCESS_TOKEN SGWS_CRED_NAME SGWS_BUCKET_NAME)
-missing=()
-for v in "${REQUIRED_VARS[@]}"; do [ "$v" = SGWS_CRED_NAME ] && [ -n "${SGWS_CREDENTIAL_ID:-}" ] && [ -n "${SGWS_SERVER_URL:-}" ] && continue; [ -n "${!v:-}" ] || missing+=("$v"); done
-if [ ${#missing[@]} -gt 0 ]; then
-  echo "ERROR: the following environment variables must be set before running $(basename "$0"):" >&2
-  for v in "${missing[@]}"; do echo "  $v  -  $(grep -m1 "^#   $v " "$0" | sed -E "s/^#   $v +//")" >&2; done
-  echo "Example: export ${missing[0]}=<value>" >&2
-  exit 1
-fi
+needed=()
+for v in "${REQUIRED_VARS[@]}"; do [ "$v" = SGWS_CRED_NAME ] && [ -n "${SGWS_CREDENTIAL_ID:-}" ] && [ -n "${SGWS_SERVER_URL:-}" ] && continue; needed+=("$v"); done
+require_env_documented "$0" "${needed[@]}"
 
 # --- schedule fragments: hourly and daily always; weekly and monthly only when enabled ---
 SCHEDULES=$(cat <<JSON
@@ -112,22 +110,12 @@ JSON
 )"
 fi
 
-api_get() {  # $1 = URL, further args = extra headers ("Name: value"); prints the body, exits on a non-2xx status
-  local url="$1" out code body h; shift
-  local args=(-s -w '\n%{http_code}' -H "Authorization: Bearer $ACCESS_TOKEN" -H "X-Agent-Id: $AGENT_ID" -H 'Accept: application/json')
-  for h in "$@"; do args+=(-H "$h"); done
-  out=$(curl "${args[@]}" "$url") || { echo "ERROR: request failed: $url" >&2; exit 1; }
-  code="${out##*$'\n'}"; body="${out%$'\n'*}"
-  [[ "$code" =~ ^2 ]] || { echo "ERROR: GET $url returned HTTP $code" >&2; echo "$body" >&2; exit 1; }
-  printf '%s' "$body"
-}
-
 # --- StorageGRID target: look up credential ID and server address from the credential name ---
 # (mirrors the UI: GET .../v1/credentials?provider=SGWS, then GET .../v1/object-storage?...)
 # SGWS_CREDENTIAL_ID / SGWS_SERVER_URL are kept if you set them; the lookup is skipped if you set both.
 if [ -z "${SGWS_CREDENTIAL_ID:-}" ] || [ -z "${SGWS_SERVER_URL:-}" ]; then
-  BASE="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1"
-  creds=$(api_get "$BASE/credentials?provider=SGWS")
+  BASE="/backup-recovery/organizations/$ACCOUNT_ID/v1"
+  creds=$(api_get_or_die "$BASE/credentials?provider=SGWS")
   match=$(printf '%s' "$creds" | jq -c --arg n "$SGWS_CRED_NAME" '[.[] | select(.credential_name == $n)]')
   if [ "$(printf '%s' "$match" | jq length)" -ne 1 ]; then
     echo "ERROR: expected exactly one StorageGRID credential named '$SGWS_CRED_NAME'. Available credentials:" >&2
@@ -140,7 +128,7 @@ if [ -z "${SGWS_CREDENTIAL_ID:-}" ] || [ -z "${SGWS_SERVER_URL:-}" ]; then
     echo "ERROR: credential '$SGWS_CRED_NAME' has no credential_uuid / storage_server_name in the response:" >&2
     printf '%s' "$match" | jq -c '.[0] | del(.access_key)' >&2; exit 1
   fi
-  buckets=$(api_get "$BASE/object-storage?provider=SGWS&credential-id=$SGWS_CREDENTIAL_ID")
+  buckets=$(api_get_or_die "$BASE/object-storage?provider=SGWS&credential-id=$SGWS_CREDENTIAL_ID")
   if ! printf '%s' "$buckets" | jq -e --arg b "$SGWS_BUCKET_NAME" 'any(.[]; .object_store_name == $b)' >/dev/null; then
     echo "ERROR: bucket '$SGWS_BUCKET_NAME' not found for credential '$SGWS_CRED_NAME'. Available buckets:" >&2
     printf '%s' "$buckets" | jq -r '.[] | "  " + .object_store_name' >&2
@@ -155,7 +143,7 @@ JSON
 
 # POST the policy. With --dry-run, print the request body instead and make no create call
 # (the read-only lookups above still ran).
-POLICIES_URL="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies"
+POLICIES_URL="${CONSOLE_API}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies"
 post_policy() {
   if [ "$DRY_RUN" = true ]; then
     echo "Dry run. POST $POLICIES_URL" >&2

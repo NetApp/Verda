@@ -12,6 +12,7 @@
 # Optional environment variables:
 #   CONSOLE_API    API base URL (https://cloudmanager.cloud.netapp.com)
 #   AGENT_ID       Console agent ID; sent as X-Agent-Id if set
+# Aliases: BEARER_TOKEN for ACCESS_TOKEN, ORG_ID for ACCOUNT_ID, API_HOST for CONSOLE_API.
 #
 # Endpoint: DELETE .../v1/workloads/k8s/kubernetes/policies/<policyId> (verified live: HTTP 204).
 # A policy that is still assigned to protected applications may be refused by the server.
@@ -34,9 +35,10 @@ done
 [[ "$policy_id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]] \
   || { echo "ERROR: '$policy_id' is not a policy ID (expected a UUID such as 4b400c55-40ee-4920-b193-e36c6900cff7)" >&2; exit 1; }
 
+bnr_env_aliases
 require_env ACCOUNT_ID ACCESS_TOKEN
 
-POLICY_URL="${CONSOLE_API:-https://cloudmanager.cloud.netapp.com}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies/$policy_id"
+POLICY_URL="${CONSOLE_API}/backup-recovery/organizations/$ACCOUNT_ID/v1/workloads/k8s/kubernetes/policies/$policy_id"
 if $dry_run; then
   echo "Dry run. DELETE $POLICY_URL" >&2
   echo "Dry run. No policy was deleted." >&2
