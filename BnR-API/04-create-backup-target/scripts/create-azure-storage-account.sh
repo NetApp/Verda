@@ -151,21 +151,15 @@ else
     require_env ACCESS_TOKEN ACCOUNT_ID AGENT_ID
 fi
 
-# GET a path below CONSOLE_API with the headers the Console UI sends.
-console_get() {
-    local args=(-sS --fail-with-body "${CONSOLE_API}$1"
-        -H "Authorization: Bearer ${ACCESS_TOKEN}"
-        -H "Accept: application/json"
-        -H "X-Account-Id: ${ACCOUNT_ID}"
-        -H "X-Agent-Id: ${AGENT_ID}")
-    [ -n "$WORKSPACE_ID" ] && args+=(-H "x-netapp-workspace-id: ${WORKSPACE_ID}")
-    curl "${args[@]}"
-}
+# Header the Console UI sends when a workspace/project is known (empty otherwise);
+# passed as the second argument of api_get.
+WS_HEADER=""
+[ -z "$WORKSPACE_ID" ] || WS_HEADER="x-netapp-workspace-id: ${WORKSPACE_ID}"
 
 CBS_BASE="/account/${ACCOUNT_ID}/providers/cloudmanager_cbs/api/v1/azure"
 
 if [ "$LIST_SUBSCRIPTIONS" = "true" ]; then
-    console_get "${CBS_BASE}/subscription" | jq -r '.subscription[] | "\(.id)  \(.name)"'
+    api_get "${CBS_BASE}/subscription" "$WS_HEADER" | jq -r '.subscription[] | "\(.id)  \(.name)"'
     exit 0
 fi
 
@@ -175,7 +169,7 @@ if [ -z "$SUBSCRIPTION_ID" ] && [ -n "$SUBSCRIPTION_NAME" ]; then
         SUBSCRIPTION_ID="<resolved from subscription name '${SUBSCRIPTION_NAME}'>"
     else
         print_message "$BLUE" "Looking up subscription '$SUBSCRIPTION_NAME'" >&2
-        SUBSCRIPTIONS=$(console_get "${CBS_BASE}/subscription")
+        SUBSCRIPTIONS=$(api_get "${CBS_BASE}/subscription" "$WS_HEADER")
         MATCHES=$(echo "$SUBSCRIPTIONS" | jq -c --arg name "$SUBSCRIPTION_NAME" \
             '[.subscription[]? | select(.name == $name)]')
         case "$(echo "$MATCHES" | jq 'length')" in
@@ -196,7 +190,7 @@ if [ "$LIST_RESOURCE_GROUPS" = "true" ]; then
         echo "List the subscriptions with:  $0 --list-subscriptions"
         exit 1
     fi
-    console_get "${CBS_BASE}/subscription/${SUBSCRIPTION_ID}/resource-group" \
+    api_get "${CBS_BASE}/subscription/${SUBSCRIPTION_ID}/resource-group" "$WS_HEADER" \
         | jq -r '.["resource-group"][] | "\(.name)  (\(.region))"'
     exit 0
 fi

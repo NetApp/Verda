@@ -156,22 +156,16 @@ else
     require_env ACCESS_TOKEN ACCOUNT_ID AGENT_ID
 fi
 
-# GET a path below CONSOLE_API with the headers the Console UI sends.
-console_get() {
-    local args=(-sS --fail-with-body "${CONSOLE_API}$1"
-        -H "Authorization: Bearer ${ACCESS_TOKEN}"
-        -H "Accept: application/json"
-        -H "X-Account-Id: ${ACCOUNT_ID}"
-        -H "X-Agent-Id: ${AGENT_ID}")
-    [ -n "$WORKSPACE_ID" ] && args+=(-H "x-netapp-workspace-id: ${WORKSPACE_ID}")
-    curl "${args[@]}"
-}
+# Header the Console UI sends when a workspace/project is known (empty otherwise);
+# passed as the second argument of api_get.
+WS_HEADER=""
+[ -z "$WORKSPACE_ID" ] || WS_HEADER="x-netapp-workspace-id: ${WORKSPACE_ID}"
 
 CBS_BASE="/account/${ACCOUNT_ID}/providers/cloudmanager_cbs/api/v1/aws"
 CLOUD_PROVIDERS_PATH="/occm/api/accounts/cloud-providers"
 
 if [ "$LIST_AWS_ACCOUNTS" = "true" ]; then
-    console_get "$CLOUD_PROVIDERS_PATH" \
+    api_get "$CLOUD_PROVIDERS_PATH" "$WS_HEADER" \
         | jq -r '.awsAccounts[] | "\(.accountId)  \(.accountName)  (\(.accountType))"'
     exit 0
 fi
@@ -182,7 +176,7 @@ if [ -z "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_ACCOUNT_NAME" ]; then
         AWS_ACCOUNT_ID="<resolved from AWS account name '${AWS_ACCOUNT_NAME}'>"
     else
         print_message "$BLUE" "Looking up AWS account '$AWS_ACCOUNT_NAME'" >&2
-        ACCOUNTS=$(console_get "$CLOUD_PROVIDERS_PATH")
+        ACCOUNTS=$(api_get "$CLOUD_PROVIDERS_PATH" "$WS_HEADER")
         MATCHES=$(echo "$ACCOUNTS" | jq -c --arg name "$AWS_ACCOUNT_NAME" \
             '[.awsAccounts[]? | select(.accountName == $name)]')
         case "$(echo "$MATCHES" | jq 'length')" in
@@ -198,13 +192,13 @@ if [ -z "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_ACCOUNT_NAME" ]; then
 fi
 
 if [ "$LIST_REGIONS" = "true" ]; then
-    console_get "${CBS_BASE}/region" | jq -r '.region[] | "\(.code)  \(.name)"'
+    api_get "${CBS_BASE}/region" "$WS_HEADER" | jq -r '.region[] | "\(.code)  \(.name)"'
     exit 0
 fi
 
 if [ "$LIST_KMS_KEYS" = "true" ]; then
     require_env AWS_ACCOUNT_ID REGION
-    console_get "${CBS_BASE}/awsAccountId/${AWS_ACCOUNT_ID}/region/${REGION}/key" \
+    api_get "${CBS_BASE}/awsAccountId/${AWS_ACCOUNT_ID}/region/${REGION}/key" "$WS_HEADER" \
         | jq -r '.key[] | "\(.id)  \(.name)  (\(.origin))"'
     exit 0
 fi

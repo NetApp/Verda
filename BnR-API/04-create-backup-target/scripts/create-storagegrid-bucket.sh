@@ -132,22 +132,17 @@ else
     require_env ACCESS_TOKEN ACCOUNT_ID AGENT_ID
 fi
 
-# GET a path below CONSOLE_API with the headers the Console UI sends.
-console_get() {
-    local args=(-sS --fail-with-body "${CONSOLE_API}$1"
-        -H "Authorization: Bearer ${ACCESS_TOKEN}"
-        -H "Accept: application/json"
-        -H "X-Agent-Id: ${AGENT_ID}")
-    [ -n "$WORKSPACE_ID" ] && args+=(-H "x-netapp-workspace-id: ${WORKSPACE_ID}")
-    curl "${args[@]}"
-}
+# Header the Console UI sends when a workspace/project is known (empty otherwise);
+# passed as the second argument of api_get.
+WS_HEADER=""
+[ -z "$WORKSPACE_ID" ] || WS_HEADER="x-netapp-workspace-id: ${WORKSPACE_ID}"
 
 BASE="/backup-recovery/organizations/${ACCOUNT_ID}/v1"
 # Credential list shape: array of {credential_uuid, credential_name, storage_server_name, ...}
 CRED_LIST='(if type == "array" then . else (.items // .credentials // .records // []) end)'
 
 if [ "$LIST_CREDENTIALS" = "true" ]; then
-    console_get "${BASE}/credentials?provider=SGWS" \
+    api_get "${BASE}/credentials?provider=SGWS" "$WS_HEADER" \
         | jq -r "${CRED_LIST} | .[] | \"\(.credential_name)  \(.credential_uuid)  \(.storage_server_name // \"\")\""
     exit 0
 fi
@@ -169,7 +164,7 @@ if [ -z "$CREDENTIAL_ID" ]; then
         CREDENTIAL_ID="<resolved from credential name '${CREDENTIAL_NAME}'>"
     else
         print_message "$BLUE" "Looking up credential '$CREDENTIAL_NAME'" >&2
-        CREDENTIALS=$(console_get "${BASE}/credentials?provider=SGWS")
+        CREDENTIALS=$(api_get "${BASE}/credentials?provider=SGWS" "$WS_HEADER")
         MATCHES=$(echo "$CREDENTIALS" | jq -c --arg name "$CREDENTIAL_NAME" \
             "[${CRED_LIST} | .[] | select((.credential_name // \"\") == \$name)]")
         case "$(echo "$MATCHES" | jq 'length')" in

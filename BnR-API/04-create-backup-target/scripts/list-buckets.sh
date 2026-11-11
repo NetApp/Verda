@@ -130,14 +130,6 @@ add_result() { # provider credential buckets-json error
                buckets: $b, error: (if $e == "" then null else $e end)}]')
 }
 
-# GET a path below CONSOLE_API with the headers the Console UI sends to the
-# account-level endpoints (they want X-Account-Id, which api_get does not send).
-console_get() {
-    curl -sS --fail-with-body "${CONSOLE_API}$1" \
-        -H "Authorization: Bearer ${ACCESS_TOKEN}" -H "Accept: application/json" \
-        -H "X-Account-Id: ${ACCOUNT_ID}" -H "X-Agent-Id: ${AGENT_ID}"
-}
-
 # The reason for the last failed call (curl's HTTP error line plus the API's
 # message) goes to this file, because the calls run in command substitutions.
 ERR_FILE=$(mktemp)
@@ -174,7 +166,7 @@ query_provider() { # provider
             accounts=$(jq -nc --arg id "$AWS_ACCOUNT_ID" '[{id: $id, name: $id}]')
         else
             : > "$ERR_FILE"
-            if ! accounts=$(console_get "/occm/api/accounts/cloud-providers" 2>"$ERR_FILE"); then
+            if ! accounts=$(api_get "/occm/api/accounts/cloud-providers" 2>"$ERR_FILE"); then
                 add_result "$provider" "" '[]' "$(fail_text 'AWS account list failed')"
                 return
             fi
@@ -200,7 +192,7 @@ query_provider() { # provider
         local sub_id="$AZ_SUBSCRIPTION_ID" sub_enc rg_enc
         if [ -z "$sub_id" ] && [ -n "$AZ_SUBSCRIPTION_NAME" ]; then
             : > "$ERR_FILE"
-            if ! sub_id=$(console_get "/account/${ACCOUNT_ID}/providers/cloudmanager_cbs/api/v1/azure/subscription" 2>"$ERR_FILE" \
+            if ! sub_id=$(api_get "/account/${ACCOUNT_ID}/providers/cloudmanager_cbs/api/v1/azure/subscription" 2>"$ERR_FILE" \
                     | jq -r --arg n "$AZ_SUBSCRIPTION_NAME" '[.subscription[]? | select(.name == $n)] | .[0].id // empty'); then
                 add_result "$provider" "" '[]' "$(fail_text 'Azure subscription lookup failed')"
                 return
