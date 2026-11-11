@@ -422,7 +422,7 @@ create_application() {
     RESPONSE_BODY=$(echo "$HTTP_RESPONSE" | sed '/HTTP_STATUS/d') || true
 
     # Save response to file (a private temp file unless --response-file / RESPONSE_FILE is set)
-    [ -n "$RESPONSE_FILE" ] || RESPONSE_FILE=$(mktemp "${TMPDIR:-/tmp}/netapp_create_app_response.XXXXXX")
+    [ -n "$RESPONSE_FILE" ] || RESPONSE_FILE=$(mktemp "$(d="${TMPDIR:-/tmp}"; echo "${d%/}")/netapp_create_app_response.XXXXXX")
     echo "$RESPONSE_BODY" > "$RESPONSE_FILE"
     echo "Response saved to: $RESPONSE_FILE"
 

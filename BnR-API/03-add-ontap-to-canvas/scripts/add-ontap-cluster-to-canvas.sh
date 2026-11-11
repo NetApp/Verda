@@ -226,7 +226,7 @@ if [ "$DRY_RUN" = "true" ]; then
 fi
 
 print_message "$BLUE" "\nAdding ONTAP cluster at ${WORKING_ENVIRONMENTS_URL}"
-BODY_FILE=$(mktemp "${TMPDIR:-/tmp}/netapp_add_ontap_cluster_response.XXXXXX")
+BODY_FILE=$(mktemp "$(d="${TMPDIR:-/tmp}"; echo "${d%/}")/netapp_add_ontap_cluster_response.XXXXXX")
 HTTP_STATUS=$(curl -sS -o "$BODY_FILE" -w '%{http_code}' -X POST "$WORKING_ENVIRONMENTS_URL" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
     -H "Content-Type: application/json" \

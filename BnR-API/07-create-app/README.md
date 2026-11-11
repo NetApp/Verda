@@ -4,6 +4,8 @@ Create an application in Backup and Recovery for Kubernetes and assign a protect
 
 Script: [`create-app-API.sh`](scripts/create-app-API.sh)
 
+Tested live 2026-11-11 on an OpenShift cluster: create and protect of a namespace-based application, HTTP 201 for both calls. Label selectors, the `virtual-machine-label-selector` app type, `--site-prefix` and `--policy-file` are untested.
+
 Run the commands below from this section's `scripts/` folder (`cd scripts`).
 
 ## Prerequisites
