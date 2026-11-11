@@ -19,9 +19,6 @@ NC='\033[0m'
 # Connection settings. No defaults for IDs: set them via env.sh or flags.
 # ACCESS_TOKEN / CONSOLE_API / ACCOUNT_ID are the names used in the other
 # sections; BEARER_TOKEN / API_HOST / ORG_ID are accepted as aliases.
-ACCESS_TOKEN="${ACCESS_TOKEN:-${BEARER_TOKEN:-}}"
-CONSOLE_API="${CONSOLE_API:-${API_HOST:-https://cloudmanager.cloud.netapp.com}}"
-ORG_ID="${ORG_ID:-}"
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AGENT_ID="${AGENT_ID:-}"
 
@@ -101,8 +98,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[ -z "$ACCOUNT_ID" ] && ACCOUNT_ID="$ORG_ID"
-CONSOLE_API="${CONSOLE_API%/}"
+# BEARER_TOKEN, ORG_ID and API_HOST are accepted as aliases; the host defaults to the Console API.
+bnr_env_aliases
 
 for command in jq curl; do
     if ! command -v "$command" >/dev/null 2>&1; then

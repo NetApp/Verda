@@ -2,10 +2,12 @@
 # Create an OCCM service credential and print export statements for OCCM_ID, CLIENT_ID, CLIENT_SECRET.
 # Usage:  eval "$(./create-occm-credential.sh <occm_name>)"
 #         ./create-occm-credential.sh <occm_name> --dry-run   print the request, create nothing
-# Requires: CONSOLE_API, ACCOUNT_ID, AGENT_ID, ACCESS_TOKEN
+# Requires: ACCOUNT_ID, AGENT_ID, ACCESS_TOKEN; CONSOLE_API defaults to
+# https://cloudmanager.cloud.netapp.com. Aliases: BEARER_TOKEN, ORG_ID, API_HOST.
 set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "$0")/../../lib/bnr-common.sh"
+bnr_env_aliases
 require_env CONSOLE_API ACCOUNT_ID AGENT_ID ACCESS_TOKEN
 
 OCCM_NAME=""; DRY_RUN=false

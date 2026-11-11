@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # List Kubernetes clusters discovered by NetApp Backup and Recovery.
-# Requires: CONSOLE_API, ACCOUNT_ID, AGENT_ID, ACCESS_TOKEN
+# Requires: ACCOUNT_ID, AGENT_ID, ACCESS_TOKEN; CONSOLE_API defaults to
+# https://cloudmanager.cloud.netapp.com. Aliases: BEARER_TOKEN, ORG_ID, API_HOST.
 set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "$0")/../../lib/bnr-common.sh"
+bnr_env_aliases
 require_env CONSOLE_API ACCOUNT_ID AGENT_ID ACCESS_TOKEN
 
 curl -sS --fail-with-body --location \

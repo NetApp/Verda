@@ -21,9 +21,6 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-ACCESS_TOKEN="${ACCESS_TOKEN:-${BEARER_TOKEN:-}}"
-CONSOLE_API="${CONSOLE_API:-${API_HOST:-https://cloudmanager.cloud.netapp.com}}"
-ORG_ID="${ORG_ID:-}"
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AGENT_ID="${AGENT_ID:-}"
 
@@ -100,8 +97,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[ -z "$ACCOUNT_ID" ] && ACCOUNT_ID="$ORG_ID"
-CONSOLE_API="${CONSOLE_API%/}"
+# BEARER_TOKEN, ORG_ID and API_HOST are accepted as aliases; the host defaults to the Console API.
+bnr_env_aliases
 
 for command in jq curl; do
     if ! command -v "$command" >/dev/null 2>&1; then
