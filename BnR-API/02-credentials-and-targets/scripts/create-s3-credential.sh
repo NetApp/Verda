@@ -96,12 +96,12 @@ DRY_RUN="false"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --provider)    PROVIDER="${2:?missing value for $1}"; shift 2 ;;
-        --name)        NAME="${2:?missing value for $1}"; shift 2 ;;
-        --server)      SERVER="${2:?missing value for $1}"; shift 2 ;;
-        --port)        PORT="${2:?missing value for $1}"; shift 2 ;;
-        --access-key)  ACCESSKEY="${2:?missing value for $1}"; shift 2 ;;
-        --secret-key)  SECRETKEY="${2:?missing value for $1}"; shift 2 ;;
+        --provider)    PROVIDER="${2-}"; shift $(( $# > 1 ? 2 : 1 )) ;;
+        --name)        NAME="${2-}"; shift $(( $# > 1 ? 2 : 1 )) ;;
+        --server)      SERVER="${2-}"; shift $(( $# > 1 ? 2 : 1 )) ;;
+        --port)        PORT="${2-}"; shift $(( $# > 1 ? 2 : 1 )) ;;
+        --access-key)  ACCESSKEY="${2-}"; shift $(( $# > 1 ? 2 : 1 )) ;;
+        --secret-key)  SECRETKEY="${2-}"; shift $(( $# > 1 ? 2 : 1 )) ;;
         --list)        LIST="true"; shift ;;
         --wait)        WAIT="true"; shift ;;
         --timeout)     TIMEOUT="${2:?missing value for $1}"; shift 2 ;;

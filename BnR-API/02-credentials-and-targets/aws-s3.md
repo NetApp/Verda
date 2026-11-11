@@ -32,6 +32,17 @@ curl -sS --request POST --location "${CONSOLE_API}/occm/api/accounts/aws" \
     }')" | jq
 ```
 
+## Use the script (untested)
+
+[`scripts/create-aws-credential.sh`](scripts/create-aws-credential.sh) makes the same call. It reads the three variables above, keeps the keys off the command line, and redacts them in `--dry-run`. Run it from the `scripts/` folder (`cd scripts`):
+
+```bash
+./create-aws-credential.sh --name "$AWS_ACCOUNT_NAME" --dry-run
+./create-aws-credential.sh --name "$AWS_ACCOUNT_NAME" --wait
+```
+
+`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are also the variables the AWS CLI reads, so check the access key shown in the summary (first four characters) before you send the request. With `--wait` the script polls the credential list until the new name appears under `awsAccounts` (up to `--timeout` seconds, default 120). `--list` prints the AWS credentials of the agent. The script has not been run against a live system yet.
+
 ## Verify
 
 ```bash

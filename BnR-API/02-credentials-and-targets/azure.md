@@ -42,6 +42,19 @@ curl --request POST --location "${CONSOLE_API}/occm/api/accounts/azure" \
     }')"
 ```
 
+## Use the script
+
+[`scripts/create-azure-credential.sh`](scripts/create-azure-credential.sh) makes the same call. It reads the `AZURE_*` variables above, keeps the client secret off the command line, and redacts it in `--dry-run`. Run it from the `scripts/` folder (`cd scripts`):
+
+```bash
+./create-azure-credential.sh --name "$AZURE_CREDENTIAL_NAME" --client-id "$AZURE_CLIENT_ID" \
+  --tenant-id "$AZURE_TENANT_ID" --dry-run
+./create-azure-credential.sh --name "$AZURE_CREDENTIAL_NAME" --client-id "$AZURE_CLIENT_ID" \
+  --tenant-id "$AZURE_TENANT_ID" --wait
+```
+
+With `--wait` the script polls the credential list until the new name appears (up to `--timeout` seconds, default 120). `--list` prints the cloud provider credentials of the agent. The script has not been run against a live system yet.
+
 ## Verify
 
 List the cloud provider credentials tied to the agent:
