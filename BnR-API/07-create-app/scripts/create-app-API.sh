@@ -97,13 +97,9 @@ EOF
 ################################################################################
 # Parse arguments
 ################################################################################
-# ACCESS_TOKEN / ACCOUNT_ID / CONSOLE_API are the names used in the other
-# sections; BEARER_TOKEN / ORG_ID / API_HOST are accepted as aliases.
-ACCESS_TOKEN="${ACCESS_TOKEN:-${BEARER_TOKEN:-}}"
 ORG_ID="${ORG_ID:-}"
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AGENT_ID="${AGENT_ID:-}"
-CONSOLE_API="${CONSOLE_API:-${API_HOST:-https://cloudmanager.cloud.netapp.com}}"
 RESPONSE_FILE="${RESPONSE_FILE:-}"   # empty: a private temp file is created when the response is saved
 CLUSTER_NAME=""
 APP_NAME=""
@@ -142,10 +138,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# BEARER_TOKEN, ORG_ID and API_HOST are accepted as aliases; the host defaults to the Console API.
+bnr_env_aliases
 # Account id matches the organization unless a separate account is passed.
-[ -z "$ACCOUNT_ID" ] && ACCOUNT_ID="$ORG_ID"
 [ -z "$ORG_ID" ] && ORG_ID="$ACCOUNT_ID"
-CONSOLE_API="${CONSOLE_API%/}"
 BASE_PATH="/backup-recovery/organizations/${ORG_ID}/v1/workloads/k8s"
 BASE_URL="${CONSOLE_API}${BASE_PATH}"
 APPS_URL="${BASE_URL}/apps"
