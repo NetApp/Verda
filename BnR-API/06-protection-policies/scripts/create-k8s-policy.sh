@@ -96,7 +96,7 @@ script_for() {  # $1=target $2=type
   echo "$DIR/$1-$n-$2.sh"
 }
 
-die() { echo "ERROR: $*" >&2; echo "Run '$(basename "$0") --help' for usage." >&2; exit 2; }
+die() { echo "ERROR: $*" >&2; echo "Run '$(basename "$0") --help' for usage." >&2; exit 1; }
 
 list_secondary_targets() {
   require_env ACCOUNT_ID AGENT_ID ACCESS_TOKEN

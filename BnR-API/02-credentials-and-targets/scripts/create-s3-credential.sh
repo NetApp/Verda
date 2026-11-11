@@ -13,12 +13,6 @@ set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
 # Connection settings. No defaults for IDs: set them via env.sh or flags.
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AGENT_ID="${AGENT_ID:-}"
@@ -84,7 +78,7 @@ EOF
 }
 
 print_message() {
-    echo -e "${1}${2}${NC}"
+    echo -e "$1"
 }
 
 PROVIDER=""
@@ -126,7 +120,7 @@ bnr_env_aliases
 
 for command in jq curl; do
     if ! command -v "$command" >/dev/null 2>&1; then
-        print_message "$RED" "Error: $command is required."
+        print_message "Error: $command is required."
         exit 1
     fi
 done
@@ -134,8 +128,8 @@ done
 case "$PROVIDER" in
     ONTAP_S3)      DEFAULT_PORT=80 ;;
     SGWS|S3_COMPATIBLE) DEFAULT_PORT=443 ;;
-    "") print_message "$RED" "Error: Missing required argument: --provider"; echo; usage ;;
-    *)  print_message "$RED" "Error: --provider must be ONTAP_S3, SGWS or S3_COMPATIBLE."; exit 1 ;;
+    "") print_message "Error: Missing required argument: --provider"; echo; usage ;;
+    *)  print_message "Error: --provider must be ONTAP_S3, SGWS or S3_COMPATIBLE."; exit 1 ;;
 esac
 
 # --dry-run only prints the body, so it needs no token or agent.
@@ -166,7 +160,7 @@ if [ "$LIST" = "true" ]; then
 fi
 
 if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]] || [ "$TIMEOUT" -lt 1 ]; then
-    print_message "$RED" "Error: --timeout must be a positive number of seconds, got '$TIMEOUT'."
+    print_message "Error: --timeout must be a positive number of seconds, got '$TIMEOUT'."
     exit 1
 fi
 
@@ -178,13 +172,13 @@ MISSING=""
 [ -z "$ACCESSKEY" ] && MISSING="$MISSING --access-key"
 [ -z "$SECRETKEY" ] && MISSING="$MISSING --secret-key"
 if [ -n "$MISSING" ]; then
-    print_message "$RED" "Error: Missing required arguments or environment variables:${MISSING}"
+    print_message "Error: Missing required arguments or environment variables:${MISSING}"
     echo
     usage
 fi
 
 if ! [[ "$PORT" =~ ^[0-9]+$ ]] || [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
-    print_message "$RED" "Error: --port must be a number between 1 and 65535, got '$PORT'."
+    print_message "Error: --port must be a number between 1 and 65535, got '$PORT'."
     exit 1
 fi
 
@@ -204,22 +198,22 @@ REDACTED_PAYLOAD=$(echo "$PAYLOAD" | jq '
 
 CREDENTIALS_URL="${CONSOLE_API}${BASE}/credentials"
 
-print_message "$GREEN" "\nNetApp Console - add ${PROVIDER} credential"
+print_message "\nNetApp Console - add ${PROVIDER} credential"
 echo "Name:     $NAME"
 echo "Server:   $SERVER"
 echo "Port:     $PORT"
 echo "API:      $CONSOLE_API"
 echo "Agent:    ${AGENT_ID:-(not set)}"
 echo
-print_message "$YELLOW" "Request body (keys redacted):"
+print_message "Request body (keys redacted):"
 echo "$REDACTED_PAYLOAD" | jq .
 
 if [ "$DRY_RUN" = "true" ]; then
-    print_message "$YELLOW" "\nDry run. No API call was made."
+    print_message "\nDry run. No API call was made."
     exit 0
 fi
 
-print_message "$BLUE" "\nAdding credential at ${CREDENTIALS_URL}"
+print_message "\nAdding credential at ${CREDENTIALS_URL}"
 
 BODY_FILE=$(mktemp)
 trap 'rm -f "$BODY_FILE"' EXIT
@@ -235,8 +229,8 @@ POST_ARGS=(-sS -o "$BODY_FILE" -w '%{http_code}' -X POST "$CREDENTIALS_URL"
 HTTP_STATUS=$(printf '%s' "$PAYLOAD" | curl "${POST_ARGS[@]}") || HTTP_STATUS=""
 
 if [ -n "$HTTP_STATUS" ] && [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-    print_message "$GREEN" "Credential request accepted."
-    print_message "$GREEN" "HTTP Status: $HTTP_STATUS"
+    print_message "Credential request accepted."
+    print_message "HTTP Status: $HTTP_STATUS"
     echo
     jq . "$BODY_FILE" 2>/dev/null || cat "$BODY_FILE"
     echo
@@ -249,17 +243,17 @@ if [ -n "$HTTP_STATUS" ] && [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 3
 
     # Poll the credential list until the new name shows up. No job-status
     # call is documented here, so "listed" is the signal that it is registered.
-    print_message "$BLUE" "Waiting up to ${TIMEOUT}s for credential '${NAME}' to be listed..."
+    print_message "Waiting up to ${TIMEOUT}s for credential '${NAME}' to be listed..."
     DEADLINE=$((SECONDS + TIMEOUT))
     while true; do
         if FOUND=$(fetch_credentials 2>/dev/null | jq -r --arg name "$NAME" \
             "[${CRED_LIST} | .[] | select((.credential_name // \"\") == \$name)] | .[0].credential_uuid // empty" 2>/dev/null) \
             && [ -n "$FOUND" ]; then
-            print_message "$GREEN" "Credential '${NAME}' is listed: ${FOUND}"
+            print_message "Credential '${NAME}' is listed: ${FOUND}"
             exit 0
         fi
         if [ "$SECONDS" -ge "$DEADLINE" ]; then
-            print_message "$RED" "Timed out after ${TIMEOUT}s. The job may still be running, or it failed."
+            print_message "Timed out after ${TIMEOUT}s. The job may still be running, or it failed."
             echo "Check later with:  $0 --provider $PROVIDER --list"
             exit 1
         fi
@@ -267,8 +261,8 @@ if [ -n "$HTTP_STATUS" ] && [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 3
     done
 fi
 
-print_message "$RED" "Failed to add credential."
-print_message "$RED" "HTTP Status: ${HTTP_STATUS:-none}"
+print_message "Failed to add credential."
+print_message "HTTP Status: ${HTTP_STATUS:-none}"
 echo
 jq . "$BODY_FILE" 2>/dev/null || cat "$BODY_FILE"
 exit 1

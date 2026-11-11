@@ -42,13 +42,13 @@ DRY_RUN=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --policy-name)
-      { [ $# -ge 2 ] && [ -n "$2" ]; } || { echo "ERROR: --policy-name needs a value" >&2; exit 2; }
+      { [ $# -ge 2 ] && [ -n "$2" ]; } || { echo "ERROR: --policy-name needs a value" >&2; exit 1; }
       POLICY_NAME="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
-    *) echo "ERROR: unknown option '$1'. This script only takes --policy-name <name> and --dry-run; use create-k8s-policy.sh for the other options." >&2; exit 2 ;;
+    *) echo "ERROR: unknown option '$1'. This script only takes --policy-name <name> and --dry-run; use create-k8s-policy.sh for the other options." >&2; exit 1 ;;
   esac
 done
-[ -n "$POLICY_NAME" ] || { echo "ERROR: --policy-name <name> is required. Usage: $(basename "$0") --policy-name <name> [--dry-run]" >&2; exit 2; }
+[ -n "$POLICY_NAME" ] || { echo "ERROR: --policy-name <name> is required. Usage: $(basename "$0") --policy-name <name> [--dry-run]" >&2; exit 1; }
 POLICY_NAME_JSON=$(printf '%s' "$POLICY_NAME" | jq -Rs .)   # safely quoted for the JSON body
 
 REQUIRED_VARS=(ACCOUNT_ID AGENT_ID ACCESS_TOKEN AWS_ACCOUNT_ID AWS_BACKUP_TARGET)

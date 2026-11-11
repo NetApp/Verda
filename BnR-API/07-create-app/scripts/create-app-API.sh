@@ -13,13 +13,6 @@ set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
-# Color codes for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
 ################################################################################
 # Usage
 ################################################################################
@@ -93,7 +86,6 @@ EOF
     exit 1
 }
 
-
 ################################################################################
 # Parse arguments
 ################################################################################
@@ -156,35 +148,35 @@ MISSING=""
 [ -z "$POLICY_NAME" ]   && MISSING="$MISSING --policy-name"
 
 if [ -n "$MISSING" ]; then
-    echo -e "${RED}Error: Missing required arguments:${MISSING}${NC}"
+    echo -e "Error: Missing required arguments:${MISSING}"
     echo ""
     usage
 fi
 
 if [ -n "$APP_TYPE" ] && [ "$APP_TYPE" != "virtual-machine-label-selector" ]; then
-    echo -e "${RED}Error: --app-type must be virtual-machine-label-selector.${NC}"
+    echo -e "Error: --app-type must be virtual-machine-label-selector."
     exit 1
 fi
 if [ "$APP_TYPE" = "virtual-machine-label-selector" ] && [ -z "$LABEL_SELECTORS" ]; then
-    echo -e "${RED}Error: virtual-machine-label-selector requires --label-selectors.${NC}"
+    echo -e "Error: virtual-machine-label-selector requires --label-selectors."
     exit 1
 fi
 if [ -n "$VM_FREEZE_MAX" ] && ! [[ "$VM_FREEZE_MAX" =~ ^[0-9]+$ ]]; then
-    echo -e "${RED}Error: --vm-freeze-max must be a number.${NC}"
+    echo -e "Error: --vm-freeze-max must be a number."
     exit 1
 fi
 if [ "$APP_TYPE" != "virtual-machine-label-selector" ] \
     && { [ "$SKIP_VM_FREEZE" = "true" ] || [ "$SIMULTANEOUS_VM_FREEZE" = "true" ] || [ -n "$VM_FREEZE_MAX" ]; }; then
-    echo -e "${RED}Error: VM freeze flags require --app-type virtual-machine-label-selector.${NC}"
+    echo -e "Error: VM freeze flags require --app-type virtual-machine-label-selector."
     exit 1
 fi
 if [ -n "$SITE_PREFIX" ] || [ -n "$POLICY_FILE" ]; then
     if [ -z "$SITE_PREFIX" ] || [ -z "$POLICY_FILE" ]; then
-        echo -e "${RED}Error: --site-prefix and --policy-file must both be specified.${NC}"
+        echo -e "Error: --site-prefix and --policy-file must both be specified."
         exit 1
     fi
     if [ ! -f "$POLICY_FILE" ]; then
-        echo -e "${RED}Error: policy file '$POLICY_FILE' does not exist.${NC}"
+        echo -e "Error: policy file '$POLICY_FILE' does not exist."
         exit 1
     fi
 fi
@@ -200,16 +192,14 @@ IFS=',' read -ra LABEL_ARRAY <<< "$LABEL_SELECTORS"
 # Function: Print colored messages
 ################################################################################
 print_message() {
-    local color=$1
-    local message=$2
-    echo -e "${color}${message}${NC}"
+    echo -e "$1"
 }
 
 ################################################################################
 # Lookup: Resolve cluster name -> cluster ID
 ################################################################################
 resolve_cluster_id() {
-    print_message "$BLUE" "\nLooking up cluster ID for '$CLUSTER_NAME'..."
+    print_message "\nLooking up cluster ID for '$CLUSTER_NAME'..."
 
     local response
     response=$(api_get "${BASE_PATH}/clusters") || true
@@ -218,13 +208,13 @@ resolve_cluster_id() {
       '[if type == "array" then .[] else (.items[]? // empty) end] | map(select(.name == $name)) | .[0].id // empty') || true
 
     if [ -z "$CLUSTER_ID" ]; then
-        print_message "$RED" "Error: Could not find a cluster named '$CLUSTER_NAME'."
-        print_message "$YELLOW" "Available clusters:"
+        print_message "Error: Could not find a cluster named '$CLUSTER_NAME'."
+        print_message "Available clusters:"
         echo "$response" | jq -r '[if type == "array" then .[] else (.items[]? // empty) end] | .[] | "  \(.name) (\(.id))"' 2>/dev/null || true
         return 1
     fi
 
-    print_message "$GREEN" "Resolved cluster ID: $CLUSTER_ID"
+    print_message "Resolved cluster ID: $CLUSTER_ID"
     return 0
 }
 
@@ -232,7 +222,7 @@ resolve_cluster_id() {
 # Lookup: Resolve policy name -> policy ID
 ################################################################################
 resolve_policy_id() {
-    print_message "$BLUE" "Looking up policy ID for '$POLICY_NAME'..."
+    print_message "Looking up policy ID for '$POLICY_NAME'..."
 
     local response
     response=$(api_get "${BASE_PATH}/kubernetes/policies") || true
@@ -241,13 +231,13 @@ resolve_policy_id() {
       '[if type == "array" then .[] else (.items[]? // empty) end] | map(select(.policyName == $name)) | .[0].policyId // empty') || true
 
     if [ -z "$POLICY_ID" ]; then
-        print_message "$RED" "Error: Could not find a policy named '$POLICY_NAME'."
-        print_message "$YELLOW" "Available policies:"
+        print_message "Error: Could not find a policy named '$POLICY_NAME'."
+        print_message "Available policies:"
         echo "$response" | jq -r '[if type == "array" then .[] else (.items[]? // empty) end] | .[] | "  \(.policyName) (\(.policyId))"' 2>/dev/null || true
         return 1
     fi
 
-    print_message "$GREEN" "Resolved policy ID: $POLICY_ID"
+    print_message "Resolved policy ID: $POLICY_ID"
     return 0
 }
 
@@ -267,11 +257,11 @@ verify_site_policies() {
     done < "$POLICY_FILE"
 
     if [ ${#suffixes[@]} -eq 0 ]; then
-        print_message "$RED" "Error: no policies listed in '$POLICY_FILE'."
+        print_message "Error: no policies listed in '$POLICY_FILE'."
         return 1
     fi
 
-    print_message "$BLUE" "\nChecking all policies from '$POLICY_FILE' with site prefix '$SITE_PREFIX'..."
+    print_message "\nChecking all policies from '$POLICY_FILE' with site prefix '$SITE_PREFIX'..."
     echo "Policies to check:"
     local suffix
     for suffix in "${suffixes[@]}"; do
@@ -282,7 +272,7 @@ verify_site_policies() {
     response=$(api_get "${BASE_PATH}/kubernetes/policies") || true
 
     if ! echo "$response" | jq -e 'type == "array" or (.items | type == "array")' >/dev/null 2>&1; then
-        print_message "$RED" "Error: could not list protection policies."
+        print_message "Error: could not list protection policies."
         echo "$response" | jq '.' 2>/dev/null || echo "$response"
         return 1
     fi
@@ -302,17 +292,17 @@ verify_site_policies() {
     done
 
     if [ ${#found[@]} -gt 0 ]; then
-        print_message "$GREEN" "Policies from '$POLICY_FILE' that exist:"
+        print_message "Policies from '$POLICY_FILE' that exist:"
         local found_name
         for found_name in "${found[@]}"; do
             echo "  $found_name"
         done
     else
-        print_message "$YELLOW" "No policies from '$POLICY_FILE' exist."
+        print_message "No policies from '$POLICY_FILE' exist."
     fi
 
     if [ ${#missing[@]} -gt 0 ]; then
-        print_message "$RED" "Error: the following policies do not exist:"
+        print_message "Error: the following policies do not exist:"
         local missing_name
         for missing_name in "${missing[@]}"; do
             echo "  $missing_name"
@@ -327,9 +317,9 @@ verify_site_policies() {
 # STEP 1: Create K8s Application
 ################################################################################
 create_application() {
-    print_message "$BLUE" "\n=========================================="
-    print_message "$BLUE" "📦 STEP 1: Creating K8s Application"
-    print_message "$BLUE" "=========================================="
+    print_message "\n=========================================="
+    print_message "📦 STEP 1: Creating K8s Application"
+    print_message "=========================================="
 
     echo "Application Name: $APP_NAME"
     echo "Cluster: $CLUSTER_NAME (ID: $CLUSTER_ID)"
@@ -397,7 +387,7 @@ create_application() {
         } else {} end)')
 
     if [ "$DRY_RUN" = "true" ]; then
-        print_message "$YELLOW" "\nDry run. POST $APPS_URL"
+        print_message "\nDry run. POST $APPS_URL"
         echo "$CREATE_PAYLOAD" | jq .
         APP_ID="<new_application_id>"
         return 0
@@ -424,29 +414,29 @@ create_application() {
 
     # Check if request was successful
     if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-        print_message "$GREEN" "✅ Application created successfully!"
-        print_message "$GREEN" "HTTP Status: $HTTP_STATUS"
+        print_message "✅ Application created successfully!"
+        print_message "HTTP Status: $HTTP_STATUS"
         echo ""
-        print_message "$YELLOW" "Response:"
+        print_message "Response:"
         echo "$RESPONSE_BODY" | jq '.' 2>/dev/null || echo "$RESPONSE_BODY"
 
         # Extract APP_ID from response (adjust based on actual API response structure)
         APP_ID=$(echo "$RESPONSE_BODY" | jq -r '.id // .appId // .applicationId' 2>/dev/null) || true
 
         if [ -z "$APP_ID" ] || [ "$APP_ID" == "null" ]; then
-            print_message "$YELLOW" "\n️⚠️  Warning: Could not extract APP_ID from response."
-            print_message "$YELLOW" "Please provide the APP_ID manually to protect the application."
+            print_message "\n️⚠️  Warning: Could not extract APP_ID from response."
+            print_message "Please provide the APP_ID manually to protect the application."
             return 1
         fi
 
         echo ""
-        print_message "$GREEN" "📋 Application ID: $APP_ID"
+        print_message "📋 Application ID: $APP_ID"
         return 0
     else
-        print_message "$RED" "❌ Failed to create application!"
-        print_message "$RED" "HTTP Status: $HTTP_STATUS"
+        print_message "❌ Failed to create application!"
+        print_message "HTTP Status: $HTTP_STATUS"
         echo ""
-        print_message "$RED" "Error Response:"
+        print_message "Error Response:"
         echo "$RESPONSE_BODY" | jq '.' 2>/dev/null || echo "$RESPONSE_BODY"
         return 1
     fi
@@ -458,9 +448,9 @@ create_application() {
 protect_application() {
     local app_id=$1
 
-    print_message "$BLUE" "\n=========================================="
-    print_message "$BLUE" "🛡️  STEP 2: Protecting K8s Application"
-    print_message "$BLUE" "=========================================="
+    print_message "\n=========================================="
+    print_message "🛡️  STEP 2: Protecting K8s Application"
+    print_message "=========================================="
 
     echo "Application ID: $app_id"
     echo "Policy Name: $POLICY_NAME (ID: $POLICY_ID)"
@@ -475,7 +465,7 @@ protect_application() {
     PROTECT_URL="${APPS_URL}/${app_id}/protect"
 
     if [ "$DRY_RUN" = "true" ]; then
-        print_message "$YELLOW" "\nDry run. POST $PROTECT_URL"
+        print_message "\nDry run. POST $PROTECT_URL"
         echo "$PROTECT_PAYLOAD" | jq .
         return 0
     fi
@@ -496,17 +486,17 @@ protect_application() {
 
     # Check if request was successful
     if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-        print_message "$GREEN" "✅ Application protected successfully!"
-        print_message "$GREEN" "HTTP Status: $HTTP_STATUS"
+        print_message "✅ Application protected successfully!"
+        print_message "HTTP Status: $HTTP_STATUS"
         echo ""
-        print_message "$YELLOW" "Response:"
+        print_message "Response:"
         echo "$RESPONSE_BODY" | jq '.' 2>/dev/null || echo "$RESPONSE_BODY"
         return 0
     else
-        print_message "$RED" "❌ Failed to protect application!"
-        print_message "$RED" "HTTP Status: $HTTP_STATUS"
+        print_message "❌ Failed to protect application!"
+        print_message "HTTP Status: $HTTP_STATUS"
         echo ""
-        print_message "$RED" "Error Response:"
+        print_message "Error Response:"
         echo "$RESPONSE_BODY" | jq '.' 2>/dev/null || echo "$RESPONSE_BODY"
         return 1
     fi
@@ -516,9 +506,9 @@ protect_application() {
 # MAIN EXECUTION
 ################################################################################
 main() {
-    print_message "$GREEN" "\n╔════════════════════════════════════════════════════════╗"
-    print_message "$GREEN" "║ NetApp Console - K8s Application Creation & Protection ║"
-    print_message "$GREEN" "╚════════════════════════════════════════════════════════╝"
+    print_message "\n╔════════════════════════════════════════════════════════╗"
+    print_message "║ NetApp Console - K8s Application Creation & Protection ║"
+    print_message "╚════════════════════════════════════════════════════════╝"
 
     if [ -n "$SITE_PREFIX" ]; then
         if ! verify_site_policies; then
@@ -540,7 +530,7 @@ main() {
     if create_application; then
         # Wait a moment for the application to be fully created
         if [ "$DRY_RUN" != "true" ]; then
-            print_message "$YELLOW" "\n⏳ Waiting 3 seconds before protecting application..."
+            print_message "\n⏳ Waiting 3 seconds before protecting application..."
             sleep 3
         fi
 
@@ -548,18 +538,18 @@ main() {
         if [ -n "$APP_ID" ] && [ "$APP_ID" != "null" ]; then
             protect_application "$APP_ID"
         else
-            print_message "$YELLOW" "\n⚠️  Skipping protection step - APP_ID not available"
-            print_message "$YELLOW" "To protect manually, use the APP_ID from the response above"
+            print_message "\n⚠️  Skipping protection step - APP_ID not available"
+            print_message "To protect manually, use the APP_ID from the response above"
         fi
     else
-        print_message "$RED" "\n❌ Application creation failed. Skipping protection step."
+        print_message "\n❌ Application creation failed. Skipping protection step."
         exit 1
     fi
 
-    [ "$DRY_RUN" != "true" ] || print_message "$YELLOW" "\nDry run. No application was created or protected."
-    print_message "$GREEN" "\n=========================================="
-    print_message "$GREEN" "🎉 Script execution completed!"
-    print_message "$GREEN" "=========================================="
+    [ "$DRY_RUN" != "true" ] || print_message "\nDry run. No application was created or protected."
+    print_message "\n=========================================="
+    print_message "🎉 Script execution completed!"
+    print_message "=========================================="
 }
 
 # Run the main function

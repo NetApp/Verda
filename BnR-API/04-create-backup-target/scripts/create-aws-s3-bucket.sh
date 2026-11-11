@@ -17,12 +17,6 @@ set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
 # Connection settings. No defaults for IDs: set them via env.sh or flags.
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AGENT_ID="${AGENT_ID:-}"
@@ -90,7 +84,7 @@ EOF
 }
 
 print_message() {
-    echo -e "${1}${2}${NC}"
+    echo -e "$1"
 }
 
 BUCKET=""
@@ -136,13 +130,13 @@ bnr_env_aliases
 
 for command in jq curl; do
     if ! command -v "$command" >/dev/null 2>&1; then
-        print_message "$RED" "Error: $command is required."
+        print_message "Error: $command is required."
         exit 1
     fi
 done
 
 if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]] || [ "$TIMEOUT" -lt 1 ]; then
-    print_message "$RED" "Error: --timeout must be a positive number of seconds, got '$TIMEOUT'."
+    print_message "Error: --timeout must be a positive number of seconds, got '$TIMEOUT'."
     exit 1
 fi
 
@@ -172,17 +166,17 @@ if [ -z "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_ACCOUNT_NAME" ]; then
     if [ "$DRY_RUN" = "true" ]; then
         AWS_ACCOUNT_ID="<resolved from AWS account name '${AWS_ACCOUNT_NAME}'>"
     else
-        print_message "$BLUE" "Looking up AWS account '$AWS_ACCOUNT_NAME'" >&2
+        print_message "Looking up AWS account '$AWS_ACCOUNT_NAME'" >&2
         ACCOUNTS=$(api_get "$CLOUD_PROVIDERS_PATH" "$WS_HEADER")
         MATCHES=$(echo "$ACCOUNTS" | jq -c --arg name "$AWS_ACCOUNT_NAME" \
             '[.awsAccounts[]? | select(.accountName == $name)]')
         case "$(echo "$MATCHES" | jq 'length')" in
-            0) print_message "$RED" "Error: no AWS account named '$AWS_ACCOUNT_NAME'. Available:"
+            0) print_message "Error: no AWS account named '$AWS_ACCOUNT_NAME'. Available:"
                echo "$ACCOUNTS" | jq -r '.awsAccounts[]? | "  \(.accountName)  \(.accountId)"'
                exit 1 ;;
             1) AWS_ACCOUNT_ID=$(echo "$MATCHES" | jq -r '.[0].accountId')
-               print_message "$GREEN" "Resolved '$AWS_ACCOUNT_NAME' to $AWS_ACCOUNT_ID" ;;
-            *) print_message "$RED" "Error: more than one AWS account is named '$AWS_ACCOUNT_NAME'."
+               print_message "Resolved '$AWS_ACCOUNT_NAME' to $AWS_ACCOUNT_ID" ;;
+            *) print_message "Error: more than one AWS account is named '$AWS_ACCOUNT_NAME'."
                exit 1 ;;
         esac
     fi
@@ -205,14 +199,14 @@ MISSING=""
 [ -z "$REGION" ] && MISSING="$MISSING --region"
 [ -z "$AWS_ACCOUNT_ID" ] && MISSING="$MISSING --aws-account-id or --aws-account-name"
 if [ -n "$MISSING" ]; then
-    print_message "$RED" "Error: Missing required arguments:${MISSING}"
+    print_message "Error: Missing required arguments:${MISSING}"
     echo
     usage
 fi
 
 case "$OBJECT_LOCK_MODE" in
     NONE|COMPLIANCE|GOVERNANCE) ;;
-    *) print_message "$RED" "Error: --object-lock-mode must be NONE, COMPLIANCE or GOVERNANCE."; exit 1 ;;
+    *) print_message "Error: --object-lock-mode must be NONE, COMPLIANCE or GOVERNANCE."; exit 1 ;;
 esac
 OBJECT_LOCK="false"
 [ "$OBJECT_LOCK_MODE" != "NONE" ] && OBJECT_LOCK="true"
@@ -221,7 +215,7 @@ OBJECT_LOCK="false"
 TAGS_JSON="[]"
 for tag in ${TAGS[@]+"${TAGS[@]}"}; do
     if [[ "$tag" != *=* ]] || [ -z "${tag%%=*}" ]; then
-        print_message "$RED" "Error: --tag must be KEY=VALUE, got '$tag'."
+        print_message "Error: --tag must be KEY=VALUE, got '$tag'."
         exit 1
     fi
     TAGS_JSON=$(echo "$TAGS_JSON" | jq -c --arg k "${tag%%=*}" --arg v "${tag#*=}" '. + [{Key: $k, Value: $v}]')
@@ -245,14 +239,14 @@ PAYLOAD=$(jq -n \
     } + (if ($tags | length) > 0 then {tags: $tags} else {} end)')
 
 if [ -z "$(echo "$PAYLOAD" | jq -r '.object_store_name // empty')" ]; then
-    print_message "$RED" "Error: the request body has no object_store_name. Not sending."
+    print_message "Error: the request body has no object_store_name. Not sending."
     echo "$PAYLOAD" | jq .
     exit 1
 fi
 
 BUCKETS_URL="${CONSOLE_API}/backup-recovery/organizations/${ACCOUNT_ID}/v1/object-storage"
 
-print_message "$GREEN" "\nNetApp Console - AWS S3 bucket"
+print_message "\nNetApp Console - AWS S3 bucket"
 echo "Bucket:         $BUCKET"
 echo "Region:         $REGION"
 echo "AWS account:    $AWS_ACCOUNT_ID"
@@ -262,15 +256,15 @@ echo "Tags:           $(echo "$TAGS_JSON" | jq -r 'if length == 0 then "(none)" 
 echo "API:            $CONSOLE_API"
 echo "Agent:          ${AGENT_ID:-(not set)}"
 echo
-print_message "$YELLOW" "Request body:"
+print_message "Request body:"
 echo "$PAYLOAD" | jq .
 
 if [ "$DRY_RUN" = "true" ]; then
-    print_message "$YELLOW" "\nDry run. No API call was made."
+    print_message "\nDry run. No API call was made."
     exit 0
 fi
 
-print_message "$BLUE" "\nCreating bucket at ${BUCKETS_URL}"
+print_message "\nCreating bucket at ${BUCKETS_URL}"
 
 BODY_FILE=$(mktemp)
 trap 'rm -f "$BODY_FILE"' EXIT
@@ -285,28 +279,28 @@ POST_ARGS=(-sS -o "$BODY_FILE" -w '%{http_code}' -X POST "$BUCKETS_URL"
 HTTP_STATUS=$(curl "${POST_ARGS[@]}") || HTTP_STATUS=""
 
 if [ -n "$HTTP_STATUS" ] && [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-    print_message "$GREEN" "Bucket create request accepted."
-    print_message "$GREEN" "HTTP Status: $HTTP_STATUS"
+    print_message "Bucket create request accepted."
+    print_message "HTTP Status: $HTTP_STATUS"
     echo
     jq . "$BODY_FILE" 2>/dev/null || cat "$BODY_FILE"
 
     if [ "$WAIT" = "true" ]; then
         # Export what the shared helper needs (api_get uses these names).
         export CONSOLE_API ACCESS_TOKEN AGENT_ID ACCOUNT_ID
-        print_message "$BLUE" "\nWaiting up to ${TIMEOUT}s for bucket '$BUCKET' to be listed..."
+        print_message "\nWaiting up to ${TIMEOUT}s for bucket '$BUCKET' to be listed..."
         # The AWS list call needs the AWS account ID.
         if wait_for_object_store "provider=AWS&aws-account-id=${AWS_ACCOUNT_ID}" "$BUCKET" "$TIMEOUT"; then
-            print_message "$GREEN" "The bucket '$BUCKET' is listed."
+            print_message "The bucket '$BUCKET' is listed."
             exit 0
         fi
-        print_message "$RED" "Timed out after ${TIMEOUT}s. The job may still be running, or it failed."
+        print_message "Timed out after ${TIMEOUT}s. The job may still be running, or it failed."
         exit 1
     fi
     exit 0
 fi
 
-print_message "$RED" "Failed to create bucket."
-print_message "$RED" "HTTP Status: ${HTTP_STATUS:-none}"
+print_message "Failed to create bucket."
+print_message "HTTP Status: ${HTTP_STATUS:-none}"
 echo
 jq . "$BODY_FILE" 2>/dev/null || cat "$BODY_FILE"
 exit 1

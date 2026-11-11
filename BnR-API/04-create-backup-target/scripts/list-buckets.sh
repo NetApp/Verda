@@ -16,11 +16,6 @@ set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AGENT_ID="${AGENT_ID:-}"
 
@@ -69,7 +64,7 @@ EOF
 }
 
 print_message() {
-    echo -e "${1}${2}${NC}" >&2
+    echo -e "$1" >&2
 }
 
 ONLY_PROVIDER=""
@@ -102,14 +97,14 @@ bnr_env_aliases
 
 for command in jq curl; do
     if ! command -v "$command" >/dev/null 2>&1; then
-        print_message "$RED" "Error: $command is required."
+        print_message "Error: $command is required."
         exit 1
     fi
 done
 
 case "$ONLY_PROVIDER" in
     ""|AWS|AZURE|ONTAP_S3|SGWS|S3_COMPATIBLE) ;;
-    *) print_message "$RED" "Error: --provider must be AWS, AZURE, ONTAP_S3, SGWS or S3_COMPATIBLE."; exit 1 ;;
+    *) print_message "Error: --provider must be AWS, AZURE, ONTAP_S3, SGWS or S3_COMPATIBLE."; exit 1 ;;
 esac
 
 require_env ACCESS_TOKEN ACCOUNT_ID AGENT_ID
@@ -283,7 +278,7 @@ echo "$RESULTS" | jq -c '.[]' | while IFS= read -r group; do
     fi
     echo
     if [ -n "$error" ]; then
-        echo -e "${YELLOW}${heading}: ${error}${NC}"
+        echo -e "${heading}: ${error}"
         continue
     fi
     echo "${heading}: ${count} bucket(s)"

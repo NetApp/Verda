@@ -10,12 +10,6 @@ set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
 # Connection settings. No defaults for IDs: set them via env.sh or flags.
 # WORKSPACE_ID is the name used in the other sections; TENANT_ID is accepted as an alias.
 ORG_ID="${ORG_ID:-}"
@@ -76,7 +70,7 @@ EOF
 }
 
 print_message() {
-    echo -e "${1}${2}${NC}"
+    echo -e "$1"
 }
 
 CLUSTER_ADDRESS="${CLUSTER_ADDRESS:-}"
@@ -112,7 +106,7 @@ bnr_env_aliases
 
 for command in jq curl; do
     if ! command -v "$command" >/dev/null 2>&1; then
-        print_message "$RED" "Error: $command is required."
+        print_message "Error: $command is required."
         exit 1
     fi
 done
@@ -125,13 +119,13 @@ MISSING=""
 [ -z "$CLUSTER_PASSWORD" ] && MISSING="$MISSING --cluster-password"
 [ -z "$CLUSTER_USER_NAME" ] && MISSING="$MISSING --cluster-user-name"
 if [ -n "$MISSING" ]; then
-    print_message "$RED" "Error: Missing required arguments or environment variables:${MISSING}"
+    print_message "Error: Missing required arguments or environment variables:${MISSING}"
     exit 1
 fi
 
 if [ -z "$TENANT_ID" ]; then
     WORKSPACES_URL="${CONSOLE_API}/tenancy/account/${ACCOUNT_ID}/workspace"
-    print_message "$BLUE" "Resolving Console tenant from account '$ACCOUNT_ID'..."
+    print_message "Resolving Console tenant from account '$ACCOUNT_ID'..."
 
     WORKSPACES_FILE=$(mktemp)
     trap 'rm -f "$WORKSPACES_FILE"' EXIT
@@ -142,9 +136,9 @@ if [ -z "$TENANT_ID" ]; then
     WORKSPACES_RESPONSE=$(cat "$WORKSPACES_FILE")
 
     if [ "$WORKSPACES_STATUS" -lt 200 ] || [ "$WORKSPACES_STATUS" -ge 300 ]; then
-        print_message "$RED" "Error: Could not retrieve Console workspaces."
-        print_message "$RED" "HTTP Status: $WORKSPACES_STATUS"
-        print_message "$YELLOW" "Lookup: $WORKSPACES_URL"
+        print_message "Error: Could not retrieve Console workspaces."
+        print_message "HTTP Status: $WORKSPACES_STATUS"
+        print_message "Lookup: $WORKSPACES_URL"
         echo "$WORKSPACES_RESPONSE" | jq . 2>/dev/null || echo "$WORKSPACES_RESPONSE"
         exit 1
     fi
@@ -158,7 +152,7 @@ if [ -z "$TENANT_ID" ]; then
             | if length == 1 then .[0] else empty end
         ')
         if [ -z "$TENANT_ID" ]; then
-            print_message "$RED" "Error: Could not find one workspace named '$PROJECT_NAME'."
+            print_message "Error: Could not find one workspace named '$PROJECT_NAME'."
         fi
     else
         TENANT_ID=$(echo "$WORKSPACES_RESPONSE" | jq -r --arg agent "$AGENT_ID" '
@@ -172,13 +166,13 @@ if [ -z "$TENANT_ID" ]; then
             | if length == 1 then .[0] else empty end
         ')
         if [ -z "$TENANT_ID" ]; then
-            print_message "$RED" "Error: Agent '$AGENT_ID' is not associated with exactly one Console workspace."
-            print_message "$YELLOW" "Set PROJECT_NAME to the project selected in the Console, or set WORKSPACE_ID."
+            print_message "Error: Agent '$AGENT_ID' is not associated with exactly one Console workspace."
+            print_message "Set PROJECT_NAME to the project selected in the Console, or set WORKSPACE_ID."
         fi
     fi
 
     if [ -z "$TENANT_ID" ]; then
-        print_message "$YELLOW" "Available workspaces:"
+        print_message "Available workspaces:"
         echo "$WORKSPACES_RESPONSE" | jq -r '
           (if type == "array" then . else (.items // []) end)[]
           | "  \(.workspaceName // .name // "(unnamed)") (\(.workspacePublicId // .publicId // .id // "no id"))"
@@ -186,7 +180,7 @@ if [ -z "$TENANT_ID" ]; then
         exit 1
     fi
 
-    print_message "$GREEN" "Resolved tenant ID: $TENANT_ID"
+    print_message "Resolved tenant ID: $TENANT_ID"
 fi
 
 PAYLOAD=$(jq -n \
@@ -207,22 +201,22 @@ PAYLOAD=$(jq -n \
 WORKING_ENVIRONMENTS_URL="${CONSOLE_API}/occm/api/onprem/working-environments"
 REDACTED_PAYLOAD=$(echo "$PAYLOAD" | jq '.clusterPassword = "***REDACTED***"')
 
-print_message "$GREEN" "\nNetApp Console - Add ONTAP cluster to storage canvas"
+print_message "\nNetApp Console - Add ONTAP cluster to storage canvas"
 echo "Cluster address: $CLUSTER_ADDRESS"
 echo "Cluster user:    $CLUSTER_USER_NAME"
 echo "Canvas name:     $CLUSTER_NAME"
 echo "Tenant ID:       $TENANT_ID"
 echo "API:             $CONSOLE_API"
 echo
-print_message "$YELLOW" "Request body (password redacted):"
+print_message "Request body (password redacted):"
 echo "$REDACTED_PAYLOAD" | jq .
 
 if [ "$DRY_RUN" = "true" ]; then
-    print_message "$YELLOW" "\nDry run. No API call was made."
+    print_message "\nDry run. No API call was made."
     exit 0
 fi
 
-print_message "$BLUE" "\nAdding ONTAP cluster at ${WORKING_ENVIRONMENTS_URL}"
+print_message "\nAdding ONTAP cluster at ${WORKING_ENVIRONMENTS_URL}"
 BODY_FILE=$(mktemp "$(d="${TMPDIR:-/tmp}"; echo "${d%/}")/netapp_add_ontap_cluster_response.XXXXXX")
 HTTP_STATUS=$(curl -sS -o "$BODY_FILE" -w '%{http_code}' -X POST "$WORKING_ENVIRONMENTS_URL" \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
@@ -235,16 +229,16 @@ HTTP_STATUS=$(curl -sS -o "$BODY_FILE" -w '%{http_code}' -X POST "$WORKING_ENVIR
 if [ -z "$RESPONSE_FILE" ]; then RESPONSE_FILE="$BODY_FILE"; else mv "$BODY_FILE" "$RESPONSE_FILE"; fi
 
 if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-    print_message "$GREEN" "ONTAP cluster add request accepted."
-    print_message "$GREEN" "HTTP Status: $HTTP_STATUS"
+    print_message "ONTAP cluster add request accepted."
+    print_message "HTTP Status: $HTTP_STATUS"
     echo "Response saved to: $RESPONSE_FILE"
     echo
     jq . "$RESPONSE_FILE" 2>/dev/null || cat "$RESPONSE_FILE"
     exit 0
 fi
 
-print_message "$RED" "Failed to add ONTAP cluster."
-print_message "$RED" "HTTP Status: ${HTTP_STATUS:-none}"
+print_message "Failed to add ONTAP cluster."
+print_message "HTTP Status: ${HTTP_STATUS:-none}"
 echo "Response saved to: $RESPONSE_FILE"
 echo
 jq . "$RESPONSE_FILE" 2>/dev/null || cat "$RESPONSE_FILE"

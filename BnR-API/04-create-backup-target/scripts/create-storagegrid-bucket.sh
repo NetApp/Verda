@@ -15,12 +15,6 @@ set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
 # Connection settings. No defaults for IDs: set them via env.sh or flags.
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AGENT_ID="${AGENT_ID:-}"
@@ -76,7 +70,7 @@ EOF
 }
 
 print_message() {
-    echo -e "${1}${2}${NC}"
+    echo -e "$1"
 }
 
 BUCKET=""
@@ -112,13 +106,13 @@ bnr_env_aliases
 
 for command in jq curl; do
     if ! command -v "$command" >/dev/null 2>&1; then
-        print_message "$RED" "Error: $command is required."
+        print_message "Error: $command is required."
         exit 1
     fi
 done
 
 if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]] || [ "$TIMEOUT" -lt 1 ]; then
-    print_message "$RED" "Error: --timeout must be a positive number of seconds, got '$TIMEOUT'."
+    print_message "Error: --timeout must be a positive number of seconds, got '$TIMEOUT'."
     exit 1
 fi
 
@@ -150,7 +144,7 @@ if [ -z "$CREDENTIAL_ID" ] && [ -z "$CREDENTIAL_NAME" ]; then
     MISSING="$MISSING --credential-name or --credential-id"
 fi
 if [ -n "$MISSING" ]; then
-    print_message "$RED" "Error: Missing required arguments:${MISSING}"
+    print_message "Error: Missing required arguments:${MISSING}"
     echo
     usage
 fi
@@ -160,21 +154,21 @@ if [ -z "$CREDENTIAL_ID" ]; then
     if [ "$DRY_RUN" = "true" ]; then
         CREDENTIAL_ID="<resolved from credential name '${CREDENTIAL_NAME}'>"
     else
-        print_message "$BLUE" "Looking up credential '$CREDENTIAL_NAME'" >&2
+        print_message "Looking up credential '$CREDENTIAL_NAME'" >&2
         CREDENTIALS=$(api_get "${BASE}/credentials?provider=SGWS" "$WS_HEADER")
         MATCHES=$(echo "$CREDENTIALS" | jq -c --arg name "$CREDENTIAL_NAME" \
             "[${CRED_LIST} | .[] | select((.credential_name // \"\") == \$name)]")
         case "$(echo "$MATCHES" | jq 'length')" in
-            0) print_message "$RED" "Error: no SGWS credential named '$CREDENTIAL_NAME'. Available:"
+            0) print_message "Error: no SGWS credential named '$CREDENTIAL_NAME'. Available:"
                echo "$CREDENTIALS" | jq -r "${CRED_LIST} | .[] | \"  \(.credential_name)  \(.credential_uuid)\""
                exit 1 ;;
             1) CREDENTIAL_ID=$(echo "$MATCHES" | jq -r '.[0].credential_uuid // empty')
                if [ -z "$CREDENTIAL_ID" ]; then
-                   print_message "$RED" "Error: credential '$CREDENTIAL_NAME' has no credential_uuid."
+                   print_message "Error: credential '$CREDENTIAL_NAME' has no credential_uuid."
                    exit 1
                fi
-               print_message "$GREEN" "Resolved '$CREDENTIAL_NAME' to $CREDENTIAL_ID" ;;
-            *) print_message "$RED" "Error: more than one credential is named '$CREDENTIAL_NAME'."
+               print_message "Resolved '$CREDENTIAL_NAME' to $CREDENTIAL_ID" ;;
+            *) print_message "Error: more than one credential is named '$CREDENTIAL_NAME'."
                echo "$MATCHES" | jq -r '.[] | "  \(.credential_name)  \(.credential_uuid)"'
                exit 1 ;;
         esac
@@ -193,29 +187,29 @@ PAYLOAD=$(jq -n \
     }')
 
 if [ -z "$(echo "$PAYLOAD" | jq -r '.object_store_name // empty')" ]; then
-    print_message "$RED" "Error: the request body has no object_store_name. Not sending."
+    print_message "Error: the request body has no object_store_name. Not sending."
     echo "$PAYLOAD" | jq .
     exit 1
 fi
 
 BUCKETS_URL="${CONSOLE_API}${BASE}/object-storage"
 
-print_message "$GREEN" "\nNetApp Console - StorageGRID bucket"
+print_message "\nNetApp Console - StorageGRID bucket"
 echo "Bucket:      $BUCKET"
 echo "Credential:  $CREDENTIAL_ID"
 echo "Object lock: $OBJECT_LOCK"
 echo "API:         $CONSOLE_API"
 echo "Agent:       ${AGENT_ID:-(not set)}"
 echo
-print_message "$YELLOW" "Request body:"
+print_message "Request body:"
 echo "$PAYLOAD" | jq .
 
 if [ "$DRY_RUN" = "true" ]; then
-    print_message "$YELLOW" "\nDry run. No API call was made."
+    print_message "\nDry run. No API call was made."
     exit 0
 fi
 
-print_message "$BLUE" "\nCreating bucket at ${BUCKETS_URL}"
+print_message "\nCreating bucket at ${BUCKETS_URL}"
 
 BODY_FILE=$(mktemp)
 trap 'rm -f "$BODY_FILE"' EXIT
@@ -230,27 +224,27 @@ POST_ARGS=(-sS -o "$BODY_FILE" -w '%{http_code}' -X POST "$BUCKETS_URL"
 HTTP_STATUS=$(curl "${POST_ARGS[@]}") || HTTP_STATUS=""
 
 if [ -n "$HTTP_STATUS" ] && [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-    print_message "$GREEN" "Bucket create request accepted."
-    print_message "$GREEN" "HTTP Status: $HTTP_STATUS"
+    print_message "Bucket create request accepted."
+    print_message "HTTP Status: $HTTP_STATUS"
     echo
     jq . "$BODY_FILE" 2>/dev/null || cat "$BODY_FILE"
 
     if [ "$WAIT" = "true" ]; then
         # Export what the shared helper needs (api_get uses these names).
         export CONSOLE_API ACCESS_TOKEN AGENT_ID ACCOUNT_ID
-        print_message "$BLUE" "\nWaiting up to ${TIMEOUT}s for bucket '$BUCKET' to be listed..."
+        print_message "\nWaiting up to ${TIMEOUT}s for bucket '$BUCKET' to be listed..."
         if wait_for_object_store "provider=SGWS&credential-id=${CREDENTIAL_ID}" "$BUCKET" "$TIMEOUT"; then
-            print_message "$GREEN" "The bucket '$BUCKET' is listed."
+            print_message "The bucket '$BUCKET' is listed."
             exit 0
         fi
-        print_message "$RED" "Timed out after ${TIMEOUT}s. The job may still be running, or it failed."
+        print_message "Timed out after ${TIMEOUT}s. The job may still be running, or it failed."
         exit 1
     fi
     exit 0
 fi
 
-print_message "$RED" "Failed to create bucket."
-print_message "$RED" "HTTP Status: ${HTTP_STATUS:-none}"
+print_message "Failed to create bucket."
+print_message "HTTP Status: ${HTTP_STATUS:-none}"
 echo
 jq . "$BODY_FILE" 2>/dev/null || cat "$BODY_FILE"
 exit 1

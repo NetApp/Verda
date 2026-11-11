@@ -10,12 +10,6 @@ set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
 # Connection settings. No defaults for IDs: set them via env.sh or flags.
 # ACCESS_TOKEN / CONSOLE_API / ACCOUNT_ID are the names used in the other
 # sections; BEARER_TOKEN / API_HOST / ORG_ID are accepted as aliases.
@@ -68,7 +62,7 @@ EOF
 }
 
 print_message() {
-    echo -e "${1}${2}${NC}"
+    echo -e "$1"
 }
 
 BUCKET=""
@@ -103,13 +97,13 @@ bnr_env_aliases
 
 for command in jq curl; do
     if ! command -v "$command" >/dev/null 2>&1; then
-        print_message "$RED" "Error: $command is required."
+        print_message "Error: $command is required."
         exit 1
     fi
 done
 
 if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]] || [ "$TIMEOUT" -lt 1 ]; then
-    print_message "$RED" "Error: --timeout must be a positive number of seconds, got '$TIMEOUT'."
+    print_message "Error: --timeout must be a positive number of seconds, got '$TIMEOUT'."
     exit 1
 fi
 
@@ -135,7 +129,7 @@ if [ -z "$CREDENTIAL_ID" ] && [ -z "$CREDENTIAL_NAME" ]; then
     MISSING="$MISSING --credential-name or --credential-id"
 fi
 if [ -n "$MISSING" ]; then
-    print_message "$RED" "Error: Missing required arguments:${MISSING}"
+    print_message "Error: Missing required arguments:${MISSING}"
     echo
     usage
 fi
@@ -143,9 +137,9 @@ fi
 # Resolve a credential name to its credential_uuid. Prints the id on stdout.
 resolve_credential_id() {
     local name=$1 body matches count id
-    print_message "$BLUE" "Looking up credential '$name'" >&2
+    print_message "Looking up credential '$name'" >&2
     body=$(api_get "${BASE}/credentials?provider=ONTAP_S3") || {
-        print_message "$RED" "Error: credential list failed." >&2
+        print_message "Error: credential list failed." >&2
         echo "$body" | jq . >&2 2>/dev/null || echo "$body" >&2
         return 1
     }
@@ -155,12 +149,12 @@ resolve_credential_id() {
         | map(select((.credential_name // .credentialName // .name // "") == $name))')
     count=$(echo "$matches" | jq 'length')
     if [ "$count" -gt 1 ]; then
-        print_message "$RED" "Error: more than one credential is named '$name'." >&2
+        print_message "Error: more than one credential is named '$name'." >&2
         echo "$matches" | jq -r '.[] | "  \(.credential_name // .name)  \(.credential_uuid // .id // "")"' >&2
         return 1
     fi
     if [ "$count" -eq 0 ]; then
-        print_message "$RED" "Error: no ONTAP_S3 credential named '$name'. Available:" >&2
+        print_message "Error: no ONTAP_S3 credential named '$name'. Available:" >&2
         echo "$body" | jq -r '
             (if type == "array" then . else (.items // .credentials // .records // []) end)
             | .[] | "  \(.credential_name // .credentialName // .name // "(unnamed)")  \(.credential_uuid // .credentialId // .id // "")"' >&2 2>/dev/null || true
@@ -169,11 +163,11 @@ resolve_credential_id() {
 
     id=$(echo "$matches" | jq -r '.[0].credential_uuid // .[0].credentialId // .[0].id // empty')
     if [ -z "$id" ]; then
-        print_message "$RED" "Error: credential '$name' has no credential_uuid." >&2
+        print_message "Error: credential '$name' has no credential_uuid." >&2
         echo "$matches" | jq . >&2
         return 1
     fi
-    print_message "$GREEN" "Resolved credential '$name' to $id" >&2
+    print_message "Resolved credential '$name' to $id" >&2
     printf '%s' "$id"
 }
 
@@ -198,28 +192,28 @@ PAYLOAD=$(jq -n \
     }')
 
 if [ -z "$(echo "$PAYLOAD" | jq -r '.object_store_name // empty')" ]; then
-    print_message "$RED" "Error: the request body has no object_store_name. Not sending."
+    print_message "Error: the request body has no object_store_name. Not sending."
     echo "$PAYLOAD" | jq .
     exit 1
 fi
 
 BUCKETS_URL="${CONSOLE_API}${BASE}/object-storage"
 
-print_message "$GREEN" "\nNetApp Console - ONTAP S3 bucket"
+print_message "\nNetApp Console - ONTAP S3 bucket"
 echo "Bucket:     $BUCKET"
 echo "Credential: $CREDENTIAL_ID"
 echo "API:        $CONSOLE_API"
 echo "Agent:      ${AGENT_ID:-(not set)}"
 echo
-print_message "$YELLOW" "Request body:"
+print_message "Request body:"
 echo "$PAYLOAD" | jq .
 
 if [ "$DRY_RUN" = "true" ]; then
-    print_message "$YELLOW" "\nDry run. No API call was made."
+    print_message "\nDry run. No API call was made."
     exit 0
 fi
 
-print_message "$BLUE" "\nCreating bucket at ${BUCKETS_URL}"
+print_message "\nCreating bucket at ${BUCKETS_URL}"
 
 BODY_FILE=$(mktemp)
 trap 'rm -f "$BODY_FILE"' EXIT
@@ -232,27 +226,27 @@ HTTP_STATUS=$(curl -sS -o "$BODY_FILE" -w '%{http_code}' -X POST "$BUCKETS_URL" 
     -d "$PAYLOAD") || HTTP_STATUS=""
 
 if [ -n "$HTTP_STATUS" ] && [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-    print_message "$GREEN" "Bucket create request accepted."
-    print_message "$GREEN" "HTTP Status: $HTTP_STATUS"
+    print_message "Bucket create request accepted."
+    print_message "HTTP Status: $HTTP_STATUS"
     echo
     jq . "$BODY_FILE" 2>/dev/null || cat "$BODY_FILE"
 
     if [ "$WAIT" = "true" ]; then
         # Export what the shared helper needs (api_get uses these names).
         export CONSOLE_API ACCESS_TOKEN AGENT_ID ACCOUNT_ID
-        print_message "$BLUE" "\nWaiting up to ${TIMEOUT}s for bucket '$BUCKET' to be listed..."
+        print_message "\nWaiting up to ${TIMEOUT}s for bucket '$BUCKET' to be listed..."
         if wait_for_object_store "provider=ONTAP_S3&credential-id=${CREDENTIAL_ID}" "$BUCKET" "$TIMEOUT"; then
-            print_message "$GREEN" "The bucket '$BUCKET' is listed."
+            print_message "The bucket '$BUCKET' is listed."
             exit 0
         fi
-        print_message "$RED" "Timed out after ${TIMEOUT}s. The job may still be running, or it failed."
+        print_message "Timed out after ${TIMEOUT}s. The job may still be running, or it failed."
         exit 1
     fi
     exit 0
 fi
 
-print_message "$RED" "Failed to create bucket."
-print_message "$RED" "HTTP Status: ${HTTP_STATUS:-none}"
+print_message "Failed to create bucket."
+print_message "HTTP Status: ${HTTP_STATUS:-none}"
 echo
 jq . "$BODY_FILE" 2>/dev/null || cat "$BODY_FILE"
 exit 1
