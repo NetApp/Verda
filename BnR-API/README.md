@@ -17,7 +17,7 @@ Work through the sections in order the first time. Later sections assume the env
 | Section | What it covers |
 | ------- | -------------- |
 | [00-authentication](00-authentication/README.md) | Refresh token → access token, environment variable summary |
-| [01-account-discovery](01-account-discovery/README.md) | Find account (organization) ID, workspace/project ID, agent ID; check agent association |
+| [01-account-discovery](01-account-discovery/README.md) | Find account (organization) ID, workspace/project ID, agent ID; check agent association; a [script](01-account-discovery/scripts/discover.sh) lists them and prints `export` lines |
 | [02-credentials-and-targets](02-credentials-and-targets/README.md) | Add cloud and object storage credentials: [Azure](02-credentials-and-targets/azure.md), [AWS S3](02-credentials-and-targets/aws-s3.md), [ONTAP S3](02-credentials-and-targets/ontap-s3.md), [StorageGRID](02-credentials-and-targets/storagegrid.md) (untested), [S3-compatible](02-credentials-and-targets/s3-compatible.md). A [script](02-credentials-and-targets/scripts/create-s3-credential.sh) covers ONTAP S3, StorageGRID and S3-compatible; two more scripts cover [Azure](02-credentials-and-targets/scripts/create-azure-credential.sh) and [AWS](02-credentials-and-targets/scripts/create-aws-credential.sh) (AWS untested) |
 | [03-add-ontap-to-canvas](03-add-ontap-to-canvas/README.md) | Add an on-premises ONTAP cluster to the canvas (needed as secondary target for disk-to-disk and 3-2-1 policies) |
 | [04-create-backup-target](04-create-backup-target/README.md) | Create an object-storage bucket as a backup target (ONTAP S3, AWS, Azure, StorageGRID, S3-compatible; needed before disk-to-object and 3-2-1 policies) and list the existing buckets |

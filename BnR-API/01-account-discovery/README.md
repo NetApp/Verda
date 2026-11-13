@@ -2,6 +2,21 @@
 
 Find the IDs that the later API calls need. Requires `ACCESS_TOKEN` from [authentication](../00-authentication/README.md).
 
+## Shortcut: `discover.sh`
+
+[`scripts/discover.sh`](scripts/discover.sh) runs the account and workspace calls below and shows accounts, workspaces and their associated agents as tables:
+
+```bash
+cd scripts
+./discover.sh                                   # list accounts
+./discover.sh --account "<name_or_id>"          # list that account's workspaces and agents
+eval "$(./discover.sh --account "<name_or_id>" --workspace "<name_or_id>" --exports)"
+```
+
+The last form exports `ACCOUNT_ID` and `WORKSPACE_ID`, and `AGENT_ID` if the workspace has exactly one associated agent. If several agents are associated, set `AGENT_ID` yourself. `AGENT_IP` cannot be discovered through the API. The script warns if the account ID is not a UUID (older accounts use IDs like `account-xxxxxxxx`; Backup and Recovery with these is untested) or if `AGENT_ID` is not associated with any workspace.
+
+The sections below show the same steps as plain `curl` calls.
+
 ## Find the account ID
 
 List the accounts available to your user:
