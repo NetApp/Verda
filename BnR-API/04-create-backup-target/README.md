@@ -4,7 +4,7 @@ Create the object-storage bucket that Backup and Recovery uses as an offsite bac
 
 | Target | Script | Status |
 | ------ | ------ | ------ |
-| ONTAP S3 | [`create-ontap-s3-bucket.sh`](scripts/create-ontap-s3-bucket.sh) | Tested 2026-10-27 (create) and 2026-10-28 (`--wait`) without object lock: bucket created and listed by `object-storage`. Object lock untested |
+| ONTAP S3 | [`create-ontap-s3-bucket.sh`](scripts/create-ontap-s3-bucket.sh) | Tested 2026-10-27 (create) and 2026-10-28 (`--wait`) without object lock: bucket created and listed by `object-storage`. Tested again 2026-11-13 (credential lookup by name, create, `--wait`), and the bucket was confirmed on the ONTAP S3 server. Object lock untested |
 | AWS S3 | [`create-aws-s3-bucket.sh`](scripts/create-aws-s3-bucket.sh) | Tested 2026-10-28 (account-name lookup, create, `--wait`) and 2026-10-30 (`--tag`). Object lock and customer-managed KMS keys untested. The list does not show tags, so check them in the Console or AWS |
 | Azure Blob | [`create-azure-storage-account.sh`](scripts/create-azure-storage-account.sh) | Tested 2026-10-28: resource-group lookup, create and `--wait`, with and without `--object-lock` (the request is accepted and the account is listed). The list does not show the lock state, so check it in the Console or the Azure portal |
 | StorageGRID | [`create-storagegrid-bucket.sh`](scripts/create-storagegrid-bucket.sh) | Not yet tested against StorageGRID |
@@ -40,6 +40,8 @@ Every create call returns a job ID, so the bucket may not exist yet when the scr
 ./create-ontap-s3-bucket.sh --bucket "<bucket_name>" --credential-name "<credential_name>" --dry-run
 ./create-ontap-s3-bucket.sh --bucket "<bucket_name>" --credential-name "<credential_name>"
 ```
+
+The call creates the bucket on the ONTAP S3 server; it does not register an existing one (confirmed on the ONTAP side, 2026-11-13). The bucket name must follow S3 naming rules (lowercase). `--dry-run` does not resolve the credential name: it prints a placeholder instead of the credential ID, and the lookup runs only in the real call.
 
 With `--credential-id` instead of `--credential-name`, the credential lookup is skipped. Add `--object-lock` to enable object lock.
 
