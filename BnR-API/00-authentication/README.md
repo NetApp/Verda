@@ -42,6 +42,16 @@ echo "${#ACCESS_TOKEN} characters"
 
 The access token expires. If calls start returning `401`, run the exchange again.
 
+If the refresh token is wrong or expired, the response has no `access_token` and `jq -r .access_token` prints the text `null`, which only fails later as a `401`. Check the length above: `4 characters` means the exchange failed.
+
+### Shortcut: `bnr_renew_token`
+
+[`env.sh.example`](env.sh.example) defines a helper that does the exchange, refuses to continue when no token comes back, and prints only the token length. `source env.sh` runs it once; run it again whenever calls return `401`:
+
+```bash
+bnr_renew_token
+```
+
 ## Environment variable summary
 
 After completing [account discovery](../01-account-discovery/README.md), these variables are set. A template is in [`env.sh.example`](env.sh.example).
