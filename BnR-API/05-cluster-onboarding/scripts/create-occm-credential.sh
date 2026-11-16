@@ -2,24 +2,28 @@
 # Create an OCCM service credential and print export statements for OCCM_ID, CLIENT_ID, CLIENT_SECRET.
 # Usage:  eval "$(./create-occm-credential.sh <occm_name>)"
 #         ./create-occm-credential.sh <occm_name> --dry-run   print the request, create nothing
+#         ./create-occm-credential.sh -h | --help             show this help
 # Requires: ACCOUNT_ID, AGENT_ID, ACCESS_TOKEN; CONSOLE_API defaults to
 # https://cloudmanager.cloud.netapp.com. Aliases: BEARER_TOKEN, ORG_ID, API_HOST.
+# Output: export statements for OCCM_ID, CLIENT_ID and CLIENT_SECRET on stdout,
+# status messages on stderr. The client secret is shown only once.
 set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
 source "$(dirname "$0")/../../lib/bnr-common.sh"
 bnr_env_aliases
-require_env CONSOLE_API ACCOUNT_ID AGENT_ID ACCESS_TOKEN
 
 OCCM_NAME=""; DRY_RUN=false
 for arg in "$@"; do
   case "$arg" in
+    -h|--help) sed -n '2,/^set -euo/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
     --dry-run) DRY_RUN=true ;;
-    -*)        echo "ERROR: unknown option $arg. Usage: $0 <occm_name> [--dry-run]" >&2; exit 1 ;;
+    -*)        echo "ERROR: unknown option $arg. Usage: $0 <occm_name> [--dry-run] (try --help)" >&2; exit 1 ;;
     *)         [ -z "$OCCM_NAME" ] || { echo "ERROR: only one occm_name is allowed" >&2; exit 1; }
                OCCM_NAME="$arg" ;;
   esac
 done
-[ -n "$OCCM_NAME" ] || { echo "Usage: $0 <occm_name> [--dry-run]" >&2; exit 1; }
+[ -n "$OCCM_NAME" ] || { echo "Usage: $0 <occm_name> [--dry-run] (try --help)" >&2; exit 1; }
+require_env CONSOLE_API ACCOUNT_ID AGENT_ID ACCESS_TOKEN
 
 if $DRY_RUN; then
   # Nothing goes to stdout, so an accidental eval exports nothing.

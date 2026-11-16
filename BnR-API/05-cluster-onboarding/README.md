@@ -117,6 +117,28 @@ helm upgrade --install trident-protect \
 
 See the [Trident Protect documentation](https://docs.netapp.com/us-en/trident/trident-protect/) for supported versions.
 
+### Troubleshooting: Helm install fails with "Apply failed with N conflicts"
+
+Symptom (seen 2026-11-16): the install stops with `conflict occurred while applying object /trident-protect-validating-webhook-configurations ... Apply failed with 19 conflicts: conflicts with "manager"` and lists `.webhooks[...].clientConfig.caBundle` fields, although Helm reports `Release "trident-protect" does not exist`.
+
+Cause: a cluster-scoped `ValidatingWebhookConfiguration` from an earlier Trident Protect installation is still in the cluster. Webhook configurations and CRDs survive deleting the namespace, and the old controller's field manager still owns their `caBundle` fields, so the new install can't take them over.
+
+Check for leftovers (read-only):
+
+```bash
+helm list -A -a | grep -i trident
+kubectl get pods -A | grep -i trident-protect
+kubectl get validatingwebhookconfiguration | grep -i trident
+```
+
+If nothing from the old installation is running, delete the leftover webhook configuration and repeat the Helm command:
+
+```bash
+kubectl delete validatingwebhookconfiguration trident-protect-validating-webhook-configurations
+```
+
+This fixed the install in the test above. If an old installation is still running, uninstall it first (`helm uninstall <release> -n <namespace>`). Don't delete the Trident Protect CRDs unless you intend to remove all Trident Protect resources (applications, snapshots, backups) in the cluster. The namespace, the `occmauthcreds` secret and the OCCM credential don't need to be recreated for the retry.
+
 ## List discovered clusters
 
 ```bash
@@ -131,3 +153,5 @@ curl -sS --location \
 Or use [`list-clusters.sh`](scripts/list-clusters.sh), also from the `scripts/` folder.
 
 A newly onboarded cluster should report the state `connected` shortly after the Helm install finishes.
+
+Tested 2026-11-16 with Trident Protect `100.2610.1-console`: OCCM credential created with the script, Helm install took about 2 minutes, and `list-clusters.sh` then reported the cluster as `connected`.
