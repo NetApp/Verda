@@ -111,4 +111,6 @@ Tested live against the targets and policy types below, with the Console as of 2
 | ontap-s3 | Tested | Tested | Tested | Tested |
 | sgws | Untested | Untested | Untested | Untested |
 
+Retested live on 2026-11-16 for ONTAP S3 (all four policy types) with Trident Protect 100.2610.1. For `disk-to-disk` and `3-2-1-fanout` the secondary system was the ONTAP cluster that also hosts the S3 server, using a different SVM (`SECONDARY_TARGET` from `--list-secondary-targets`); the API accepted it. The system had several SVMs and aggregates, so `SECONDARY_TARGET` was used instead of `TARGET_SYSTEM_NAME`.
+
 Request bodies for all combinations were compared with the payloads the Console UI sends. Weekly and monthly schedules, `--secondary-target` and `--partial-backup` are untested against a live system.

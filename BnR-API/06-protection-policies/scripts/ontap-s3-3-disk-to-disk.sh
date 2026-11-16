@@ -18,7 +18,7 @@
 #   TARGET_AGGREGATE             Aggregate on that SVM; only needed if it has more than one
 #   TARGET_CLUSTER_ID            Cluster ID of the secondary system; looked up unless set
 #   TARGET_STORAGE_SYSTEM_UUID   SVM UUID on the secondary system; looked up unless set
-#   ONTAP_S3_SERVER_URL          ONTAP S3 server address; if set, the credential lookup is skipped (looked up from ONTAP_CRED_NAME)
+#   ONTAP_S3_SERVER_URL          ONTAP S3 server FQDN as stored in the credential (no http://, no port); if set, the credential lookup is skipped. Normally leave unset
 #   HOURLY_EVERY_HOURS           Hourly schedule: run every N hours (1)
 #   HOURLY_RETENTION             Hourly schedule: local snapshots to keep (3)
 #   DAILY_AT                     Daily schedule: time of day HH:MM (00:00)

@@ -11,7 +11,7 @@
 #   ONTAP_CRED_NAME      Name of the ONTAP S3 credential in Backup and Recovery (not needed if ONTAP_S3_SERVER_URL is set)
 #
 # Optional environment variables (default in parentheses; the wrapper sets these from its flags):
-#   ONTAP_S3_SERVER_URL          ONTAP S3 server address; if set, the credential lookup is skipped (looked up from ONTAP_CRED_NAME)
+#   ONTAP_S3_SERVER_URL          ONTAP S3 server FQDN as stored in the credential (no http://, no port); if set, the credential lookup is skipped. Normally leave unset
 #   HOURLY_EVERY_HOURS           Hourly schedule: run every N hours (1)
 #   HOURLY_RETENTION             Hourly schedule: local snapshots to keep (3)
 #   DAILY_AT                     Daily schedule: time of day HH:MM (00:00)
