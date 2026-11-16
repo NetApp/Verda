@@ -3,8 +3,10 @@
 ################################################################################
 # NetApp Console API - Create and Protect a Kubernetes Application
 #
-# Creates an application in Backup and Recovery for Kubernetes and assigns a
-# protection policy to it. Variables follow 00-authentication/env.sh.example.
+# Creates an application in Backup and Recovery for Kubernetes and, if
+# --policy-name is given, assigns a protection policy to it. Without
+# --policy-name the application is created unprotected.
+# Variables follow 00-authentication/env.sh.example.
 # Requires: curl, jq
 ################################################################################
 
@@ -26,9 +28,11 @@ Required:
   --cluster-name  NAME          Kubernetes cluster name
   --app-name      NAME          Application name to create
   --namespaces    NS1[,NS2,..]  Comma-separated list of namespaces
-  --policy-name   NAME          Protection policy name
 
 Optional:
+  --policy-name   NAME          Protection policy to assign. Without it the
+                                application is created unprotected (no policy
+                                lookup, no protect request)
   --account-id    ID            Account id (default: organization id)
   --api-host      URL           API host (default: CONSOLE_API, else
                                 https://cloudmanager.cloud.netapp.com)
@@ -44,9 +48,10 @@ Optional:
   --vm-freeze-max N             Max virtual machines frozen at once
   --site-prefix   PREFIX        Prefix added to each name in --policy-file
   --policy-file   FILE          File with one policy name per line
-                                Both flags are required together. Each name is
-                                prefixed, then looked up. The script stops if
-                                any prefixed policy does not exist.
+                                Both flags are required together and need
+                                --policy-name. Each name is prefixed, then
+                                looked up. The script stops if any prefixed
+                                policy does not exist.
   --dry-run                     Print the create and protect requests, create nothing
                                 (the cluster and policy lookups still run)
   -h, --help                    Show this help message
@@ -66,6 +71,10 @@ Example:
      --app-name mysql-app --namespaces mysql \\
      --label-selectors 'test=backup' \\
      --policy-name <policy_name>
+
+  # Create the application without a policy (protect it later)
+  $0 --cluster-name <cluster_name> \\
+     --app-name <app_name> --namespaces <namespace>
 
   # Virtual machines in a namespace that match a label
   $0 --org-id <account_id> \\
@@ -145,7 +154,6 @@ MISSING=""
 [ -z "$CLUSTER_NAME" ]  && MISSING="$MISSING --cluster-name"
 [ -z "$APP_NAME" ]      && MISSING="$MISSING --app-name"
 [ -z "$NAMESPACES" ]    && MISSING="$MISSING --namespaces"
-[ -z "$POLICY_NAME" ]   && MISSING="$MISSING --policy-name"
 
 if [ -n "$MISSING" ]; then
     echo -e "Error: Missing required arguments:${MISSING}"
@@ -173,6 +181,10 @@ fi
 if [ -n "$SITE_PREFIX" ] || [ -n "$POLICY_FILE" ]; then
     if [ -z "$SITE_PREFIX" ] || [ -z "$POLICY_FILE" ]; then
         echo -e "Error: --site-prefix and --policy-file must both be specified."
+        exit 1
+    fi
+    if [ -z "$POLICY_NAME" ]; then
+        echo -e "Error: --site-prefix and --policy-file need --policy-name."
         exit 1
     fi
     if [ ! -f "$POLICY_FILE" ]; then
@@ -425,6 +437,11 @@ create_application() {
 
         if [ -z "$APP_ID" ] || [ "$APP_ID" == "null" ]; then
             print_message "\n️⚠️  Warning: Could not extract APP_ID from response."
+            if [ -z "$POLICY_NAME" ]; then
+                print_message "The application was created; find its ID in the Console or the response file."
+                APP_ID=""
+                return 0
+            fi
             print_message "Please provide the APP_ID manually to protect the application."
             return 1
         fi
@@ -521,32 +538,61 @@ main() {
         exit 1
     fi
 
-    # Resolve policy ID from name
-    if ! resolve_policy_id; then
-        exit 1
+    # Resolve policy ID from name (only when a policy is to be assigned)
+    if [ -n "$POLICY_NAME" ]; then
+        if ! resolve_policy_id; then
+            exit 1
+        fi
+    else
+        print_message "No --policy-name given: the application will be created without a policy."
     fi
 
     # Step 1: Create Application
     if create_application; then
-        # Wait a moment for the application to be fully created
-        if [ "$DRY_RUN" != "true" ]; then
-            print_message "\n⏳ Waiting 3 seconds before protecting application..."
-            sleep 3
-        fi
-
-        # Step 2: Protect Application
-        if [ -n "$APP_ID" ] && [ "$APP_ID" != "null" ]; then
-            protect_application "$APP_ID"
+        if [ -z "$POLICY_NAME" ]; then
+            # Step 2 is skipped: nothing to protect with
+            print_message "\nNo policy assigned. The application is unprotected."
+            if [ "$DRY_RUN" != "true" ]; then
+                print_message "Ways to protect it later:"
+                print_message "  - Assign a policy in the Console."
+                if [ -n "$APP_ID" ]; then
+                    print_message "  - POST {\"policyName\": ..., \"policyId\": ...} to ${APPS_URL}/${APP_ID}/protect"
+                fi
+                print_message "  - Set annotations on the application custom resource on the cluster (documented by NetApp;"
+                print_message "    tested at creation with the Trident protect CLI, 'kubectl annotate' on this application is untested):"
+                print_message "      kubectl annotate application -n <application CR namespace> <application CR name> \\"
+                print_message "        protect.trident.netapp.io/protection-command=\"protect\" \\"
+                print_message "        protect.trident.netapp.io/protection-policy-name=\"<policy name>\""
+                print_message "    Docs: https://docs.netapp.com/us-en/data-services-backup-recovery/br-use-protect-kubernetes-applications.html"
+                print_message "    Community post: https://community.netapp.com/community/discussion/466046/cli-support-in-netapp-backup-and-recovery-for-kubernetes"
+            fi
         else
-            print_message "\n⚠️  Skipping protection step - APP_ID not available"
-            print_message "To protect manually, use the APP_ID from the response above"
+            # Wait a moment for the application to be fully created
+            if [ "$DRY_RUN" != "true" ]; then
+                print_message "\n⏳ Waiting 3 seconds before protecting application..."
+                sleep 3
+            fi
+
+            # Step 2: Protect Application
+            if [ -n "$APP_ID" ] && [ "$APP_ID" != "null" ]; then
+                protect_application "$APP_ID"
+            else
+                print_message "\n⚠️  Skipping protection step - APP_ID not available"
+                print_message "To protect manually, use the APP_ID from the response above"
+            fi
         fi
     else
         print_message "\n❌ Application creation failed. Skipping protection step."
         exit 1
     fi
 
-    [ "$DRY_RUN" != "true" ] || print_message "\nDry run. No application was created or protected."
+    if [ "$DRY_RUN" = "true" ]; then
+        if [ -n "$POLICY_NAME" ]; then
+            print_message "\nDry run. No application was created or protected."
+        else
+            print_message "\nDry run. No application was created."
+        fi
+    fi
     print_message "\n=========================================="
     print_message "🎉 Script execution completed!"
     print_message "=========================================="

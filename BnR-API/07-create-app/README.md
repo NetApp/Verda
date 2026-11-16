@@ -1,6 +1,6 @@
 # Create and protect an application
 
-Create an application in Backup and Recovery for Kubernetes and assign a protection policy to it.
+Create an application in Backup and Recovery for Kubernetes and, optionally, assign a protection policy to it.
 
 Script: [`create-app-API.sh`](scripts/create-app-API.sh)
 
@@ -29,6 +29,44 @@ export CONSOLE_API="https://cloudmanager.cloud.netapp.com"   # API_HOST is accep
 ./create-app-API.sh --cluster-name "<cluster_name>" --app-name "<app_name>" \
   --namespaces "<namespace>" --policy-name "<policy_name>"
 ```
+
+`--policy-name` is optional. Without it the script only creates the application (unprotected): there is no policy lookup and no protect request. To protect it later, assign a policy in the Console or send the protect request shown at the end of the script output. Tested live 2026-11-16: create without a policy (HTTP 201, state `discovering`, `unprotected`), then a `POST .../apps/<app_id>/protect` with `{"policyName", "policyId"}` (HTTP 201; the response shows `protectionState: "protecting"`, the app state `ready`, and a `protectionJobID`).
+
+```bash
+./create-app-API.sh --cluster-name "<cluster_name>" --app-name "<app_name>" --namespaces "<namespace>"
+```
+
+### Other ways to protect an application
+
+An application without a policy can be protected in three ways:
+
+1. **Console:** assign a protection policy to the application.
+2. **API:** `POST .../v1/workloads/k8s/apps/<app_id>/protect` with `{"policyName", "policyId"}`, which is what the script does after creating the application.
+3. **Annotations on the Application custom resource**, documented by NetApp under [Add and protect a new Kubernetes application](https://docs.netapp.com/us-en/data-services-backup-recovery/br-use-protect-kubernetes-applications.html#add-and-protect-a-new-kubernetes-application), "Add a namespace-based app (CR)":
+   - `protect.trident.netapp.io/protection-command`: `protect` or `unprotect`
+   - `protect.trident.netapp.io/protection-policy-name`: the name of a Backup and Recovery protection policy that already exists
+
+   Tested when the application is created with the Trident protect CLI (March 2026, Trident protect CLI on an OpenShift cluster, policy of type disk-to-object). Protection starts immediately, and Backup and Recovery creates the app vault and the schedules. See the NetApp Community post [CLI support in NetApp Backup and Recovery for Kubernetes](https://community.netapp.com/community/discussion/466046/cli-support-in-netapp-backup-and-recovery-for-kubernetes), section "Create and protect applications with the CLI":
+
+   ```bash
+   tridentctl-protect create application <app_name> --namespaces <namespace> -n <namespace> \
+     --annotation protect.trident.netapp.io/protection-policy-name=<policy_name> \
+     --annotation protect.trident.netapp.io/protection-command=protect
+   ```
+
+   The same annotations can be set in an Application CR (`kind: Application`, `apiVersion: protect.trident.netapp.io/v1`) before applying it with `kubectl apply -f`. The policy must already exist in Backup and Recovery.
+
+   For an application that already exists, NetApp's documentation shows `kubectl annotate` for adding annotations to the application CR (its example sets a different annotation). Adapted to these two (untested here):
+
+   ```bash
+   kubectl annotate application -n <application_cr_namespace> <application_cr_name> \
+     protect.trident.netapp.io/protection-command="protect" \
+     protect.trident.netapp.io/protection-policy-name="<policy_name>"
+   ```
+
+   The Community post shows that an application created in the Console UI also has an Application CR in its namespace (same name as the application), so an application created with `create-app-API.sh` has one too: verified 2026-11-16, the CR `pu-test-app` appeared in the namespace `pu-alpine` (check with `kubectl get application -A`). Whether the annotations act on such a CR has not been tested.
+
+The script prints these options after it creates an application without a policy.
 
 Add `--dry-run` to print the create and protect requests without sending them. The cluster and policy lookups still run.
 
