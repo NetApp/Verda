@@ -4,7 +4,7 @@ Create an application in Backup and Recovery for Kubernetes and, optionally, ass
 
 Script: [`create-app-API.sh`](scripts/create-app-API.sh)
 
-Tested live 2026-11-11 on an OpenShift cluster: create and protect of a namespace-based application, HTTP 201 for both calls. Label selectors, the `virtual-machine-label-selector` app type, `--site-prefix` and `--policy-file` are untested.
+Tested live 2026-11-11 on an OpenShift cluster: create and protect of a namespace-based application, HTTP 201 for both calls. Retested 2026-11-16 with Trident Protect 100.2610.1 and an Azure disk-to-object policy: HTTP 201 for both calls, and on the cluster the Application CR, a schedule, a snapshot and a running backup appeared within a minute. Right after the call the CR reports `protectionState: Partial` with the detail "Scheduled backup unavailable" until the first backup completes. Protecting through the API does not add the `protect.trident.netapp.io/protection-*` annotations to the CR. The first backup completed (about 3 minutes for a small test namespace) and objects appeared in the Azure container. Label selectors, the `virtual-machine-label-selector` app type, `--site-prefix` and `--policy-file` are untested.
 
 Run the commands below from this section's `scripts/` folder (`cd scripts`).
 
@@ -56,7 +56,7 @@ An application without a policy can be protected in three ways:
 
    The same annotations can be set in an Application CR (`kind: Application`, `apiVersion: protect.trident.netapp.io/v1`) before applying it with `kubectl apply -f`. The policy must already exist in Backup and Recovery.
 
-   For an application that already exists, NetApp's documentation shows `kubectl annotate` for adding annotations to the application CR (its example sets a different annotation). Adapted to these two (untested here):
+   For an application that already exists, NetApp's documentation shows `kubectl annotate` for adding annotations to the application CR (its example sets a different annotation). Adapted to these two. Tested 2026-11-16 for `protection-command="unprotect"` on an application that was protected through the API: after the annotation, `kubectl get schedules` showed no schedules in the namespace, the Console showed the application as unprotected, and the completed backup (reclaim policy `Retain`) and snapshot stayed on the cluster. Then `protection-command="protect"` together with `protection-policy-name="<policy>"` and `--overwrite` on the same application restarted protection: a new schedule appeared within seconds, the Console showed the application as protected again, and the backup took about 3 minutes (small test namespace). Both annotations were tested on an application created with `create-app-API.sh`:
 
    ```bash
    kubectl annotate application -n <application_cr_namespace> <application_cr_name> \
@@ -64,7 +64,7 @@ An application without a policy can be protected in three ways:
      protect.trident.netapp.io/protection-policy-name="<policy_name>"
    ```
 
-   The Community post shows that an application created in the Console UI also has an Application CR in its namespace (same name as the application), so an application created with `create-app-API.sh` has one too: verified 2026-11-16, the CR `pu-test-app` appeared in the namespace `pu-alpine` (check with `kubectl get application -A`). Whether the annotations act on such a CR has not been tested.
+   The Community post shows that an application created in the Console UI also has an Application CR in its namespace (same name as the application), so an application created with `create-app-API.sh` has one too: verified 2026-11-16, the CR `pu-test-app` appeared in the namespace `pu-alpine` (check with `kubectl get application -A`). The annotations act on that CR (see above).
 
 The script prints these options after it creates an application without a policy.
 

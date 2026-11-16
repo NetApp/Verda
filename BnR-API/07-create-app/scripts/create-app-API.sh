@@ -559,7 +559,7 @@ main() {
                     print_message "  - POST {\"policyName\": ..., \"policyId\": ...} to ${APPS_URL}/${APP_ID}/protect"
                 fi
                 print_message "  - Set annotations on the application custom resource on the cluster (documented by NetApp;"
-                print_message "    tested at creation with the Trident protect CLI, 'kubectl annotate' on this application is untested):"
+                print_message "    tested with the Trident protect CLI at creation and with 'kubectl annotate' on an API-created application):"
                 print_message "      kubectl annotate application -n <application CR namespace> <application CR name> \\"
                 print_message "        protect.trident.netapp.io/protection-command=\"protect\" \\"
                 print_message "        protect.trident.netapp.io/protection-policy-name=\"<policy name>\""
