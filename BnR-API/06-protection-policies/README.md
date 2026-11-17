@@ -87,7 +87,7 @@ Each script documents its variables in its header and stops with a list of any t
 
 Add `--dry-run` to print the DELETE request without sending it.
 
-The server may refuse to delete a policy that is still assigned to protected applications.
+The server may refuse to delete a policy that is still assigned to protected applications. Tested 2026-11-17: the confirmation prompt, `--yes` and `--dry-run` work, and deleting a policy that no application uses returns HTTP 204. Deleting a policy that is still assigned to an application was not tested, so delete or unprotect the applications first.
 
 ## Verify
 

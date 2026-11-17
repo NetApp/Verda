@@ -23,7 +23,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../../lib/bnr-common.sh"
 policy_id=""; assume_yes=false; dry_run=false
 while [ $# -gt 0 ]; do
   case "$1" in
-    -h|--help) sed -n '2,/^set -euo/p' "$0" | sed '$d'; exit 0 ;;
+    -h|--help) sed -n '2,/^set -euo/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
     -y|--yes)  assume_yes=true; shift ;;
     --dry-run) dry_run=true; shift ;;
     -*)        echo "ERROR: unknown option $1" >&2; exit 1 ;;
