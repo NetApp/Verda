@@ -7,8 +7,7 @@
 # GET  /occm/api/accounts/cloud-providers   (--list, --wait)
 #
 # Requires: curl, jq. Variables follow 00-authentication/env.sh.example.
-# Untested: the request follows 02-credentials-and-targets/aws-s3.md and has not
-# been run against a live system from this script yet.
+# Tested live 2026-11-17: create (HTTP 200, no job ID) and --list. --wait is untested.
 ################################################################################
 set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
@@ -26,9 +25,10 @@ Add AWS credentials (the access keys of an IAM user) to the NetApp Console, so
 Backup and Recovery can create and use AWS S3 backup targets. The IAM user needs
 the permissions described in the Backup and Recovery documentation.
 
-Required:
+Required (each value can also come from the environment variable named below):
   --name NAME                 Credential name (the AWS account name in the Console)
-  --access-key-id ID          AWS access key ID (prefer the AWS_ACCESS_KEY_ID variable)
+                              (or AWS_ACCOUNT_NAME)
+  --access-key-id ID         AWS access key ID (prefer the AWS_ACCESS_KEY_ID variable)
   --secret-access-key KEY     AWS secret access key (prefer the AWS_SECRET_ACCESS_KEY
                               variable: command-line arguments are visible in 'ps')
 

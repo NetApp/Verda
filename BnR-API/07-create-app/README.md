@@ -77,3 +77,39 @@ The API response is saved to `RESPONSE_FILE` (default: a new private temporary f
 ## Verify
 
 Check in the Console, under Backup and Recovery for Kubernetes, that the application is listed with its policy.
+
+## Check that the first backup succeeded
+
+HTTP 201 from the protect call and `protectionState: "protecting"` in the response only mean that protection was accepted. Check the result on the cluster:
+
+```bash
+kubectl get schedules,backups,snapshots -n <namespace>
+kubectl describe backup <backup_name> -n <namespace>
+```
+
+What a successful run looks like (Azure disk-to-object policy, small test namespace, 2026-11-17): the schedule appears within seconds, the snapshot is `Completed` after about 25 seconds and the backup after about 3 minutes 20 seconds. While the first backup runs, the Application CR has no `protection-state` annotation, and its `status` shows `protectionState: Partial`, `protectionHealthState: Unhealthy` and the detail "Scheduled backup unavailable". When the backup completes, the annotations become `protect.trident.netapp.io/protection-state: Protected` (with `protection-state-at`, an empty `protection-state-msg` and `protection-state-policy-name`), and `status` shows `protectionState: Protected` and `protectionHealthState: Healthy`. The annotation times are UTC.
+
+Example of a failure (2026-11-17): the snapshot was `Completed`, but the backup was `Failed` with the error `Backup for one or more of the application's volumes failed. Error: CBSRelationship pvc-... could not be established; ... Failed to perform modify panoramic protection for System OnPremWorkingEnvironment-... Failed to backup System <ontap_system>`. The cause was that the ONTAP system holding the volumes was not reachable from the Console agent; the AWS bucket, the app vault and the schedules were fine. The error names the ONTAP system, so check the system's status on the canvas and the agent's network access to it first.
+
+The failure is also written to the Application CR by Trident Protect, in the annotations `protect.trident.netapp.io/protection-state` (`Failed`), `protect.trident.netapp.io/protection-state-at` (time) and `protect.trident.netapp.io/protection-state-msg` (the full error, naming the failed backup). In the same example `status.protectionState` still read `Partial` with the detail "Scheduled backup unavailable", so the annotations are the better place to look:
+
+```bash
+kubectl get application <app_name> -n <namespace> -o yaml | yq '.metadata.annotations'
+```
+
+After fixing the cause, you don't have to wait for the next scheduled run. Create an on-demand backup with the CBS data mover (Backup and Recovery supports only that one), taking the app vault name from `tridentctl-protect get appvault`:
+
+```bash
+tridentctl-protect create backup --app <app_name> --appvault <appvault_name> --data-mover CBS -n <namespace>
+```
+
+Tested 2026-11-17 with the AWS disk-to-object policy after the failure above: once the ONTAP system was reachable again, the on-demand backup completed, objects appeared in the S3 bucket, and the `protection-state` annotation changed from `Failed` to `Protected` without waiting for the next scheduled run.
+
+## Stop protection and delete an application
+
+There is no API example for this in this folder; the steps below use the Console and `kubectl` (observed 2026-11-16 with Trident Protect 100.2610.1):
+
+1. **Unprotect the application.** In the Console, or with the annotation `protect.trident.netapp.io/protection-command="unprotect"` on the Application CR (`--overwrite` if a `protect` annotation exists). The schedules are removed. Existing snapshots and backups stay (the scheduled backups have reclaim policy `Retain`).
+2. **Delete the application in the Console.** The delete action is disabled (grayed out) while the application is protected, so step 1 comes first. The dialog states that deleting the application deletes all its snapshots and backups, can't be undone, and asks you to tick "Delete snapshots and backups" and to type the application name. With the box ticked, the application, its snapshot and backup CRs and the backup objects in the Azure container were removed. Whether the dialog allows keeping the backups was not tested.
+
+Delete a protection policy only after no application uses it. Deleting policies in the Console worked; whether the server refuses to delete a policy that is still assigned was not tested.

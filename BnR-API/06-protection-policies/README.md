@@ -113,4 +113,6 @@ Tested live against the targets and policy types below, with the Console as of 2
 
 Retested live on 2026-11-16 for ONTAP S3 (all four policy types) with Trident Protect 100.2610.1. For `disk-to-disk` and `3-2-1-fanout` the secondary system was the ONTAP cluster that also hosts the S3 server, using a different SVM (`SECONDARY_TARGET` from `--list-secondary-targets`); the API accepted it. The system had several SVMs and aggregates, so `SECONDARY_TARGET` was used instead of `TARGET_SYSTEM_NAME`.
 
+AWS S3 (all four policy types) was retested live on 2026-11-17 against a bucket created with `create-aws-s3-bucket.sh`. For `disk-to-disk` and `3-2-1-fanout` the secondary ONTAP system was still on the canvas but not reachable from the agent: the API accepted the policies anyway, so reachability is not checked when a policy is created; a problem would show up when the first backup runs.
+
 Request bodies for all combinations were compared with the payloads the Console UI sends. Weekly and monthly schedules, `--secondary-target` and `--partial-backup` are untested against a live system.
