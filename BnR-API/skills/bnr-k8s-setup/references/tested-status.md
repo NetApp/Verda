@@ -33,6 +33,8 @@ Update this file (in `skills/_shared/`, then run `skills/sync.sh`) when a test r
 | AWS: all four types | Live (2026-11-17). Secondary-system types were created while the secondary ONTAP was unreachable: creation does not check reachability |
 | Azure: all four types | Live (2026-10-29), not retested with Trident Protect 100.2610.1 |
 | StorageGRID: all four types | Untested |
+| S3-compatible: 3-2-1-fanout | Live (2026-11-18, OVH bucket): policy created, app protected, first backup, replication and object copy completed |
+| S3-compatible: local-snapshot, disk-to-object, disk-to-disk | Dry-run only (same provider block as the fan-out) |
 | Weekly and monthly schedules, `--secondary-target`, `--partial-backup` | Untested |
 | Listing policies (`list-k8s-policies.sh`) | Mocked API only; the underlying call is live-tested |
 | Deleting a policy that no application uses (`delete-k8s-policy.sh`) | Live (2026-11-17, HTTP 204) |

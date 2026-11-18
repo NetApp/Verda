@@ -13,7 +13,7 @@ Prerequisites: [authentication](../00-authentication/README.md) and [account dis
 | `disk-to-disk` | Snapshots plus replication to a secondary ONTAP system |
 | `3-2-1-fanout` | Snapshots, replication to a secondary ONTAP system and backups to object storage |
 
-Backup targets: `azure`, `aws`, `ontap-s3`, `sgws` (StorageGRID).
+Backup targets: `azure`, `aws`, `ontap-s3`, `sgws` (StorageGRID), `s3-compatible` (any other S3-compatible store; the API calls it `generic-s3`).
 
 ## Quick start
 
@@ -45,6 +45,7 @@ All combinations need `CONSOLE_API` (optional, defaults to `https://cloudmanager
 | `aws` | `AWS_ACCOUNT_ID`, `AWS_BACKUP_TARGET` (bucket name) |
 | `ontap-s3` | `ONTAP_CRED_NAME`, `ONTAP_BUCKET_NAME` (credential and server address are looked up) |
 | `sgws` | `SGWS_CRED_NAME`, `SGWS_BUCKET_NAME` (credential ID and server address are looked up) |
+| `s3-compatible` | `S3COMPAT_CRED_NAME`, `S3COMPAT_BUCKET_NAME` (server address is looked up from the credential) |
 | `disk-to-disk`, `3-2-1-fanout` | `TARGET_SYSTEM_NAME`, or `SECONDARY_TARGET` (see below) |
 
 ## Schedules and retention
@@ -111,9 +112,12 @@ Tested live against the targets and policy types below, with the Console as of 2
 | aws | Tested | Tested | Tested | Tested |
 | ontap-s3 | Tested | Tested | Tested | Tested |
 | sgws | Untested | Untested | Untested | Untested |
+| s3-compatible | Dry-run only | Dry-run only | Dry-run only | Tested (2026-11-18) |
 
 Retested live on 2026-11-16 for ONTAP S3 (all four policy types) with Trident Protect 100.2610.1. For `disk-to-disk` and `3-2-1-fanout` the secondary system was the ONTAP cluster that also hosts the S3 server, using a different SVM (`SECONDARY_TARGET` from `--list-secondary-targets`); the API accepted it. The system had several SVMs and aggregates, so `SECONDARY_TARGET` was used instead of `TARGET_SYSTEM_NAME`.
 
 AWS S3 (all four policy types) was retested live on 2026-11-17 against a bucket created with `create-aws-s3-bucket.sh`. For `disk-to-disk` and `3-2-1-fanout` the secondary ONTAP system was still on the canvas but not reachable from the agent: the API accepted the policies anyway, so reachability is not checked when a policy is created; a problem would show up when the first backup runs.
 
 Request bodies for all combinations were compared with the payloads the Console UI sends. Weekly and monthly schedules, `--secondary-target` and `--partial-backup` are untested against a live system.
+
+The `s3-compatible` scripts were written from the request body the Console UI sent for a 3-2-1 fan-out policy (provider `generic-s3`, bucket and server address only, no credential ID). `--dry-run` bodies were checked against it. Live test 2026-11-18 with an OVH Object Storage bucket (`s3.rbx.io.cloud.ovh.net`): `3-2-1-fanout` returned a `policyId` and the response contained the same `generic-s3` blocks (the API added `connectorID`). The other three types use the same provider block but were not run live. A first backup with this policy then completed (snapshot, replication to the secondary ONTAP system and the copy to the OVH bucket; app `Protected`, about 8 minutes for a small namespace).

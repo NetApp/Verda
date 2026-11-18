@@ -10,7 +10,7 @@
 #   create-k8s-policy.sh --list-secondary-targets    list the secondary ONTAP targets, as in the UI drop-down
 #   create-k8s-policy.sh -h | --help
 #
-# Targets: azure | aws | ontap-s3 | sgws
+# Targets: azure | aws | ontap-s3 | sgws | s3-compatible
 # Types:   local-snapshot | disk-to-object | disk-to-disk | 3-2-1-fanout
 #
 # Mandatory:
@@ -84,7 +84,7 @@ dry_run=false
 
 usage() { sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'; }
 
-TARGETS=(azure aws ontap-s3 sgws)
+TARGETS=(azure aws ontap-s3 sgws s3-compatible)
 TYPES=(local-snapshot disk-to-object disk-to-disk 3-2-1-fanout)
 PERIODS=(hourly daily weekly monthly)
 
@@ -124,6 +124,7 @@ target="${1:-}"; type="${2:-}"; shift $(( $# < 2 ? $# : 2 ))
 case "$target" in
   ontap|ontaps3|ontap_s3) target=ontap-s3 ;;
   storagegrid|sg)         target=sgws ;;
+  s3compatible|s3-compat|s3_compatible|generic-s3|generic) target=s3-compatible ;;
 esac
 case "$type" in
   321|3-2-1|fanout|fan-out)             type=3-2-1-fanout ;;

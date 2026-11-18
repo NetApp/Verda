@@ -105,6 +105,20 @@ tridentctl-protect create backup --app <app_name> --appvault <appvault_name> --d
 
 Tested 2026-11-17 with the AWS disk-to-object policy after the failure above: once the ONTAP system was reachable again, the on-demand backup completed, objects appeared in the S3 bucket, and the `protection-state` annotation changed from `Failed` to `Protected` without waiting for the next scheduled run.
 
+### Follow the progress on the cluster
+
+For policies with replication or object copies, the Trident Protect custom resources show which part is still running:
+
+```bash
+kubectl -n <namespace> get schedules,snapshots,backups,cbsvolumebackups,cbsrelationship,replicatesnapshots
+```
+
+- `snapshots`, `backups`: the local snapshot and the backup of the application.
+- `cbsvolumebackups`, `cbsrelationship`: the copy to the object store (policy types with object storage). `cbsrelationship` shows `CLOUDBASELINE` as bytes transferred, for example `272063/573440 Bytes (47.4%)`.
+- `replicatesnapshots`: the replication to the secondary ONTAP system (`disk-to-disk`, `3-2-1-fanout`); `cbsrelationship` also shows `REPLBASELINE`.
+
+Example, S3-compatible target (OVH) with a 3-2-1 fan-out policy, tested 2026-11-18: the snapshot was `Completed` after about 2 minutes, the replication baseline reached 100% while the cloud baseline was at 47%, and the backup and the `cbsrelationship` were `Completed` after about 8.5 minutes. The Application CR kept `protectionState: Partial` ("Scheduled backup unavailable") without `protection-state` annotations until then; at completion the annotations changed to `Protected`.
+
 ## Stop protection and delete an application
 
 There is no API example for this in this folder; the steps below use the Console and `kubectl` (observed 2026-11-16 with Trident Protect 100.2610.1):
