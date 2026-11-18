@@ -1,0 +1,119 @@
+# Protection policies
+
+Create Backup and Recovery for Kubernetes **protection policies** through the NetApp Console API instead of the Console UI.
+
+Prerequisites: [authentication](../00-authentication/README.md) and [account discovery](../01-account-discovery/README.md) completed. The backup target must already exist: the credential ([credentials and targets](../02-credentials-and-targets/README.md)) and the bucket or storage account ([create a backup target](../04-create-backup-target/README.md)). For `disk-to-disk` and `3-2-1-fanout`, the secondary ONTAP system must be on the canvas, see [add an ONTAP cluster to the canvas](../03-add-ontap-to-canvas/README.md). `ACCOUNT_ID` must be the organization ID (a UUID).
+
+## Policy types and targets
+
+| Policy type | What it creates |
+| ----------- | --------------- |
+| `local-snapshot` | Snapshots on the cluster's primary storage only |
+| `disk-to-object` | Snapshots plus backups to object storage |
+| `disk-to-disk` | Snapshots plus replication to a secondary ONTAP system |
+| `3-2-1-fanout` | Snapshots, replication to a secondary ONTAP system and backups to object storage |
+
+Backup targets: `azure`, `aws`, `ontap-s3`, `sgws` (StorageGRID).
+
+## Quick start
+
+```bash
+cd scripts
+
+# Show the variables a combination needs
+./create-k8s-policy.sh azure 3-2-1-fanout --vars
+
+export AZURE_SUBSCRIPTION_ID="<subscription_id>"
+export AZURE_RG="<resource_group>"
+export AZURE_STORAGE_ACCOUNT="<storage_account>"
+export TARGET_SYSTEM_NAME="<secondary_ontap_system_name>"
+
+./create-k8s-policy.sh azure 3-2-1-fanout --policy-name "<policy_name>"
+```
+
+Add `--dry-run` to print the request body without creating the policy. The read-only lookups (credentials, buckets, secondary system) still run, so the API variables are needed.
+
+Only `--policy-name` is mandatory on the command line. Everything else comes from environment variables or optional flags. Run `./create-k8s-policy.sh -h` for all options.
+
+## Required variables
+
+All combinations need `CONSOLE_API` (optional, defaults to `https://cloudmanager.cloud.netapp.com`), `ACCOUNT_ID`, `AGENT_ID` and `ACCESS_TOKEN`. `BEARER_TOKEN`, `ORG_ID` and `API_HOST` are accepted as aliases for `ACCESS_TOKEN`, `ACCOUNT_ID` and `CONSOLE_API`. In addition:
+
+| Target | Variables |
+| ------ | --------- |
+| `azure` | `AZURE_SUBSCRIPTION_ID`, `AZURE_RG`, `AZURE_STORAGE_ACCOUNT` |
+| `aws` | `AWS_ACCOUNT_ID`, `AWS_BACKUP_TARGET` (bucket name) |
+| `ontap-s3` | `ONTAP_CRED_NAME`, `ONTAP_BUCKET_NAME` (credential and server address are looked up) |
+| `sgws` | `SGWS_CRED_NAME`, `SGWS_BUCKET_NAME` (credential ID and server address are looked up) |
+| `disk-to-disk`, `3-2-1-fanout` | `TARGET_SYSTEM_NAME`, or `SECONDARY_TARGET` (see below) |
+
+## Schedules and retention
+
+Defaults match the Console UI: hourly (every hour, keep 3) and daily (00:00, keep 3). Weekly and monthly schedules are optional.
+
+```bash
+./create-k8s-policy.sh aws disk-to-object --policy-name "<policy_name>" \
+  --hourly-retention 6 --daily-at 02:00 --weekly --weekly-retention 8
+```
+
+Retention of replicas and object store copies can be set separately (`--secondary-*-retention`, `--object-*-retention`) or together (`--replica-*-retention`).
+
+## Choosing the secondary ONTAP system
+
+For `disk-to-disk` and `3-2-1-fanout`, the scripts look up the system, SVM and aggregate. Set `TARGET_SYSTEM_NAME` for the common case. If the system has more than one SVM or aggregate, list the choices and copy one entry exactly as the Console drop-down shows it:
+
+```bash
+./create-k8s-policy.sh --list-secondary-targets
+# or, in the same form as the create command:
+./create-k8s-policy.sh azure 3-2-1-fanout --list-secondary-targets
+export SECONDARY_TARGET="<system> | <svm> | <aggregate>"
+```
+
+## Scripts
+
+| Script | Purpose |
+| ------ | ------- |
+| [`create-k8s-policy.sh`](scripts/create-k8s-policy.sh) | Wrapper: picks the right script for target and type, validates options |
+| `<target>-<n>-<type>.sh` | One script per target and policy type, usable on its own with `--policy-name` |
+| [`list-k8s-policies.sh`](scripts/list-k8s-policies.sh) | List the policies (policyId, name, type); `--json` for the raw objects. Read-only; wraps the call in "Verify" below, tested with a mocked API only |
+| [`delete-k8s-policy.sh`](scripts/delete-k8s-policy.sh) | Delete a policy by its `policyId`; asks for confirmation unless `--yes` is given; `--dry-run` previews |
+
+Each script documents its variables in its header and stops with a list of any that are missing.
+
+## Delete a policy
+
+```bash
+./delete-k8s-policy.sh <policyId>
+```
+
+Add `--dry-run` to print the DELETE request without sending it.
+
+The server may refuse to delete a policy that is still assigned to protected applications. Tested 2026-11-17: the confirmation prompt, `--yes` and `--dry-run` work, and deleting a policy that no application uses returns HTTP 204. Deleting a policy that is still assigned to an application was not tested, so delete or unprotect the applications first.
+
+## Verify
+
+```bash
+curl -sS "${CONSOLE_API}/backup-recovery/organizations/${ACCOUNT_ID}/v1/workloads/k8s/kubernetes/policies" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "X-Account-Id: ${ACCOUNT_ID}" \
+  | jq '.[] | {policyId, policyName, backupArchitectureType}'
+```
+
+The call returns an array of all policies. The create call returns the new `policyId`, which you can also use with `delete-k8s-policy.sh`. The policy also appears in the Console under Backup and Recovery, Kubernetes, Policies.
+
+## Tested with
+
+Tested live against the targets and policy types below, with the Console as of 2026-10-29 and Trident Protect 26.06.
+
+| Target | local-snapshot | disk-to-object | disk-to-disk | 3-2-1-fanout |
+| ------ | -------------- | -------------- | ------------ | ------------ |
+| azure | Tested | Tested | Tested | Tested |
+| aws | Tested | Tested | Tested | Tested |
+| ontap-s3 | Tested | Tested | Tested | Tested |
+| sgws | Untested | Untested | Untested | Untested |
+
+Retested live on 2026-11-16 for ONTAP S3 (all four policy types) with Trident Protect 100.2610.1. For `disk-to-disk` and `3-2-1-fanout` the secondary system was the ONTAP cluster that also hosts the S3 server, using a different SVM (`SECONDARY_TARGET` from `--list-secondary-targets`); the API accepted it. The system had several SVMs and aggregates, so `SECONDARY_TARGET` was used instead of `TARGET_SYSTEM_NAME`.
+
+AWS S3 (all four policy types) was retested live on 2026-11-17 against a bucket created with `create-aws-s3-bucket.sh`. For `disk-to-disk` and `3-2-1-fanout` the secondary ONTAP system was still on the canvas but not reachable from the agent: the API accepted the policies anyway, so reachability is not checked when a policy is created; a problem would show up when the first backup runs.
+
+Request bodies for all combinations were compared with the payloads the Console UI sends. Weekly and monthly schedules, `--secondary-target` and `--partial-backup` are untested against a live system.

@@ -1,0 +1,157 @@
+# Cluster onboarding
+
+Automate discovery of a new Kubernetes cluster in NetApp Backup and Recovery without using the Console UI.
+
+Prerequisites: [authentication](../00-authentication/README.md) and [account discovery](../01-account-discovery/README.md) completed, `kubectl` and `helm` configured for the target cluster, and the Trident Protect Helm repository added.
+
+## OCCM credentials
+
+OCCM credentials authenticate Trident Protect on the cluster against the Console. They must exist **before** you install Trident Protect.
+
+### Create an OCCM credential
+
+```bash
+export OCCM_NAME="<occm_name>"
+
+curl --no-progress-meter -X POST \
+  "${CONSOLE_API}/account/${ACCOUNT_ID}/providers/cloudmanager_occmauth/api/v0.1/services" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "X-Account-Id: ${ACCOUNT_ID}" \
+  -H "x-agent-id: ${AGENT_ID}" \
+  -d "$(jq -n --arg name "$OCCM_NAME" '{name: $name}')" | jq .
+```
+
+Save `OCCM_ID`, `CLIENT_ID` and `CLIENT_SECRET` for later use. **The client secret is only shown once.**
+
+```bash
+export OCCM_ID="<occm_id>"
+export CLIENT_ID="<clientID>"
+export CLIENT_SECRET="<clientSecret>"
+```
+
+This variant stores the result directly in environment variables:
+
+```bash
+export OCCM_NAME="<occm_name>"
+
+RESPONSE=$(curl --no-progress-meter --fail-with-body -X POST \
+  "${CONSOLE_API}/account/${ACCOUNT_ID}/providers/cloudmanager_occmauth/api/v0.1/services" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "X-Account-Id: ${ACCOUNT_ID}" \
+  -H "x-agent-id: ${AGENT_ID}" \
+  -d "$(jq -n --arg name "$OCCM_NAME" '{name: $name}')")
+
+if jq -e '.statusCode >= 400' <<< "$RESPONSE" >/dev/null 2>&1; then
+  echo "Request failed:" >&2
+  jq . <<< "$RESPONSE" >&2
+else
+  export OCCM_ID=$(jq -r '.id' <<< "$RESPONSE")
+  export CLIENT_ID=$(jq -r '.clientId' <<< "$RESPONSE")
+  export CLIENT_SECRET=$(jq -r '.clientSecret' <<< "$RESPONSE")
+  echo "OCCM_ID=$OCCM_ID"
+  echo "CLIENT_ID=$CLIENT_ID"
+  echo "CLIENT_SECRET stored (${#CLIENT_SECRET} chars)"
+fi
+```
+
+Or use the script [`create-occm-credential.sh`](scripts/create-occm-credential.sh), run from the `scripts/` folder (`cd scripts`):
+
+```bash
+eval "$(./create-occm-credential.sh "${OCCM_NAME}")"
+```
+
+Add `--dry-run` to print the request without creating the credential. Nothing is written to stdout, so `eval` exports nothing.
+
+### List existing OCCM credentials
+
+```bash
+curl --get "${CONSOLE_API}/account/${ACCOUNT_ID}/providers/cloudmanager_occmauth/api/v0.1/services" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "X-Account-Id: ${ACCOUNT_ID}" \
+  -H "x-agent-id: ${AGENT_ID}" | jq
+```
+
+### Delete an OCCM credential
+
+Delete the credential when it is no longer needed:
+
+```bash
+curl -i -X DELETE \
+  "${CONSOLE_API}/account/${ACCOUNT_ID}/providers/cloudmanager_occmauth/api/v0.1/services/${OCCM_ID}" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "X-Account-Id: ${ACCOUNT_ID}" \
+  -H "x-agent-id: ${AGENT_ID}"
+```
+
+## Install Trident Protect and connect to Backup and Recovery
+
+Create the `trident-protect` namespace and the `occmauthcreds` secret from the credential created above:
+
+```bash
+kubectl create ns trident-protect
+
+kubectl create secret generic occmauthcreds \
+  --namespace=trident-protect \
+  --from-literal=client_id=${CLIENT_ID} \
+  --from-literal=client_secret=${CLIENT_SECRET}
+```
+
+Set the Trident Protect version (for example `100.2609.0-console`; use the version you want to deploy) and the cluster name, then run the Helm install:
+
+```bash
+export TP_VERSION="100.2609.0-console"
+export CLUSTER_NAME="<cluster_name>"
+
+helm upgrade --install trident-protect \
+  netapp-trident-protect/trident-protect-console \
+  --version ${TP_VERSION} \
+  --namespace trident-protect \
+  --set clusterName=${CLUSTER_NAME} \
+  --set trident-protect.cbs.accountID=${ACCOUNT_ID} \
+  --set trident-protect.cbs.agentID=${AGENT_ID} \
+  --set trident-protect.cbs.proxySecretName=occmauthcreds \
+  --set trident-protect.cbs.proxyHostIP=${AGENT_URL}
+```
+
+See the [Trident Protect documentation](https://docs.netapp.com/us-en/trident/trident-protect/) for supported versions.
+
+### Troubleshooting: Helm install fails with "Apply failed with N conflicts"
+
+Symptom (seen 2026-11-16): the install stops with `conflict occurred while applying object /trident-protect-validating-webhook-configurations ... Apply failed with 19 conflicts: conflicts with "manager"` and lists `.webhooks[...].clientConfig.caBundle` fields, although Helm reports `Release "trident-protect" does not exist`.
+
+Cause: a cluster-scoped `ValidatingWebhookConfiguration` from an earlier Trident Protect installation is still in the cluster. Webhook configurations and CRDs survive deleting the namespace, and the old controller's field manager still owns their `caBundle` fields, so the new install can't take them over.
+
+Check for leftovers (read-only):
+
+```bash
+helm list -A -a | grep -i trident
+kubectl get pods -A | grep -i trident-protect
+kubectl get validatingwebhookconfiguration | grep -i trident
+```
+
+If nothing from the old installation is running, delete the leftover webhook configuration and repeat the Helm command:
+
+```bash
+kubectl delete validatingwebhookconfiguration trident-protect-validating-webhook-configurations
+```
+
+This fixed the install in the test above. If an old installation is still running, uninstall it first (`helm uninstall <release> -n <namespace>`). Don't delete the Trident Protect CRDs unless you intend to remove all Trident Protect resources (applications, snapshots, backups) in the cluster. The namespace, the `occmauthcreds` secret and the OCCM credential don't need to be recreated for the retry.
+
+## List discovered clusters
+
+```bash
+curl -sS --location \
+  "${CONSOLE_API}/backup-recovery/organizations/${ACCOUNT_ID}/v1/workloads/k8s/clusters" \
+  -H "x-agent-id: ${AGENT_ID}" \
+  -H "x-account-id: ${ACCOUNT_ID}" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" | jq '.items[] | {id, name, state}'
+```
+
+Or use [`list-clusters.sh`](scripts/list-clusters.sh), also from the `scripts/` folder.
+
+A newly onboarded cluster should report the state `connected` shortly after the Helm install finishes.
+
+Tested 2026-11-16 with Trident Protect `100.2610.1-console`: OCCM credential created with the script, Helm install took about 2 minutes, and `list-clusters.sh` then reported the cluster as `connected`.

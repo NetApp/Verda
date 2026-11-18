@@ -1,3 +1,5 @@
 *.DS_Store
 *.swp
 .gitignore
+BnR-API-test-progress.md
+skill-packages/

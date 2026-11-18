@@ -75,6 +75,7 @@ export SECONDARY_TARGET="<system> | <svm> | <aggregate>"
 | ------ | ------- |
 | [`create-k8s-policy.sh`](scripts/create-k8s-policy.sh) | Wrapper: picks the right script for target and type, validates options |
 | `<target>-<n>-<type>.sh` | One script per target and policy type, usable on its own with `--policy-name` |
+| [`list-k8s-policies.sh`](scripts/list-k8s-policies.sh) | List the policies (policyId, name, type); `--json` for the raw objects. Read-only; wraps the call in "Verify" below, tested with a mocked API only |
 | [`delete-k8s-policy.sh`](scripts/delete-k8s-policy.sh) | Delete a policy by its `policyId`; asks for confirmation unless `--yes` is given; `--dry-run` previews |
 
 Each script documents its variables in its header and stops with a list of any that are missing.
