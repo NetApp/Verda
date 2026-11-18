@@ -12,6 +12,9 @@
 # Requires: curl, jq. Variables follow 00-authentication/env.sh.example.
 # Tested 2026-10-28 with default encryption, no object lock and no tags. Object lock
 # modes, tags and customer-managed KMS keys are not yet tested.
+# Bucket names must start with "netapp-backup-": the Console UI enforces this prefix
+# and the script checks it before sending (--skip-prefix-check turns the check off).
+# The API does not enforce the prefix; the check matches the UI. Tested live 2026-11-18.
 ################################################################################
 set -euo pipefail
 # shellcheck source=../../lib/bnr-common.sh
@@ -31,7 +34,9 @@ The Console creates the bucket in the given AWS account and region and
 returns a job ID.
 
 Required:
-  --bucket NAME               Bucket name (object_store_name)
+  --bucket NAME               Bucket name (object_store_name). It must start with
+                              netapp-backup- (the Console UI enforces this prefix)
+                              and be at most 63 characters long.
   --region CODE               AWS region code, for example eu-central-1
   --aws-account-id ID         AWS account ID (12 digits), or
   --aws-account-name NAME     Name of the AWS credential in the Console. The
@@ -46,6 +51,9 @@ Optional:
                               The UI sends no versioning field: versioning
                               appears to be enabled by the Console with object lock.
   --tag KEY=VALUE             AWS tag for the bucket. Repeat for several tags.
+  --skip-prefix-check         Send the bucket name as given, even if it does not
+                              start with netapp-backup-. The API accepts such a
+                              name, but the Console UI rejects it.
   --account-id ID             Account (organization) ID
   --org-id ID                 Alias for --account-id
   --agent-id ID               Console agent ID
@@ -78,7 +86,7 @@ Example:
 
   $0 --list-aws-accounts
   $0 --list-regions
-  $0 --bucket <bucket_name> --region <region_code> --aws-account-name <aws_credential_name>
+  $0 --bucket netapp-backup-<name> --region <region_code> --aws-account-name <aws_credential_name>
 EOF
     exit 1
 }
@@ -94,6 +102,8 @@ AWS_ACCOUNT_NAME=""
 KMS_KEY_ID=""
 OBJECT_LOCK_MODE="NONE"
 TAGS=()
+SKIP_PREFIX_CHECK="false"
+BUCKET_PREFIX="netapp-backup-"
 LIST_AWS_ACCOUNTS="false"
 LIST_REGIONS="false"
 LIST_KMS_KEYS="false"
@@ -110,6 +120,7 @@ while [[ $# -gt 0 ]]; do
         --kms-key-id)       KMS_KEY_ID="${2:?missing value for $1}"; shift 2 ;;
         --object-lock-mode) OBJECT_LOCK_MODE="${2:?missing value for $1}"; shift 2 ;;
         --tag)              TAGS+=("${2:?missing value for $1}"); shift 2 ;;
+        --skip-prefix-check) SKIP_PREFIX_CHECK="true"; shift ;;
         --account-id|--org-id) ACCOUNT_ID="${2:?missing value for $1}"; shift 2 ;;
         --agent-id)         AGENT_ID="${2:?missing value for $1}"; shift 2 ;;
         --workspace-id)     WORKSPACE_ID="${2:?missing value for $1}"; shift 2 ;;
@@ -202,6 +213,24 @@ if [ -n "$MISSING" ]; then
     print_message "Error: Missing required arguments:${MISSING}"
     echo
     usage
+fi
+
+# Bucket names for Backup and Recovery must start with the prefix the Console UI enforces.
+if [ "$SKIP_PREFIX_CHECK" != "true" ]; then
+    if [[ "$BUCKET" != "${BUCKET_PREFIX}"* ]]; then
+        print_message "Error: AWS S3 bucket names must start with '${BUCKET_PREFIX}' (the Console UI enforces this)."
+        print_message "Suggested name: ${BUCKET_PREFIX}${BUCKET}"
+        print_message "Use --skip-prefix-check to send the name unchanged."
+        exit 1
+    fi
+    if [ "${#BUCKET}" -le "${#BUCKET_PREFIX}" ]; then
+        print_message "Error: add a name after the prefix '${BUCKET_PREFIX}'."
+        exit 1
+    fi
+fi
+if [ "${#BUCKET}" -gt 63 ]; then
+    print_message "Error: an S3 bucket name can have at most 63 characters; '$BUCKET' has ${#BUCKET}."
+    exit 1
 fi
 
 case "$OBJECT_LOCK_MODE" in

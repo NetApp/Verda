@@ -54,20 +54,22 @@ List the regions and KMS keys the Console offers, then create the bucket:
 ./create-aws-s3-bucket.sh --list-regions
 ./create-aws-s3-bucket.sh --list-kms-keys --aws-account-name "<aws_credential_name>" --region "<region_code>"
 
-./create-aws-s3-bucket.sh --bucket "<bucket_name>" --region "<region_code>" \
+./create-aws-s3-bucket.sh --bucket "netapp-backup-<name>" --region "<region_code>" \
   --aws-account-name "<aws_credential_name>" --dry-run
-./create-aws-s3-bucket.sh --bucket "<bucket_name>" --region "<region_code>" \
+./create-aws-s3-bucket.sh --bucket "netapp-backup-<name>" --region "<region_code>" \
   --aws-account-name "<aws_credential_name>"
 ```
 
 Use `--aws-account-id` instead of `--aws-account-name` if you already know the 12-digit AWS account ID. The name is the credential name shown in the Console, and the script resolves it with `GET /occm/api/accounts/cloud-providers`.
+
+**Bucket names must start with `netapp-backup-`.** The Console UI now enforces this prefix for AWS S3 backup targets, and the script checks it before sending anything (also with `--dry-run`). A name without the prefix is refused with a suggested name, for example `netapp-backup-pu-aws-test-7` for `pu-aws-test-7`; the script does not add the prefix silently. The name may have at most 63 characters, so 49 remain after the prefix. The API accepted a name without the prefix on 2026-11-17, before the UI rule was known; `--skip-prefix-check` sends the name unchanged if you need that. The API itself neither enforces nor rejects the prefix, so the check exists to match the UI. Tested live 2026-11-18 with `netapp-backup-pu-test-aws-1` in `eu-central-1` (HTTP 201, listed with `--wait`). Existing buckets are not renamed. A policy created on 2026-11-17 accepted a bucket without the prefix (`AWS_BACKUP_TARGET`); whether policies still accept such buckets after the rule change has not been checked.
 
 `--kms-key-id` is empty by default, which is what the UI sends for default encryption.
 
 For a bucket with object lock, add `--object-lock-mode COMPLIANCE` or `GOVERNANCE`. Object lock modes and tags are not yet tested. The UI sends no versioning field, so the Console appears to enable versioning together with object lock. Add `--tag KEY=VALUE` once per AWS tag:
 
 ```bash
-./create-aws-s3-bucket.sh --bucket "<bucket_name>" --region "<region_code>" \
+./create-aws-s3-bucket.sh --bucket "netapp-backup-<name>" --region "<region_code>" \
   --aws-account-name "<aws_credential_name>" \
   --object-lock-mode COMPLIANCE --tag type=test
 ```
