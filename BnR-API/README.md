@@ -4,6 +4,8 @@ Community examples for automating NetApp Backup and Recovery operations through 
 
 > **Support:** These examples are provided as-is under **Community Support** and are not officially supported by NetApp. The NetApp Console API can change. Always check the [official API documentation](https://docs.netapp.com/us-en/console-automation/) and test in a non-production environment first.
 
+> **Experimental AI skills:** [`skills/`](skills/README.md) packages these scripts as three Claude skills (`bnr-k8s-setup`, `bnr-k8s-policies`, `bnr-k8s-protect`). The skills are **experimental**: they run scripts that create and delete real cloud resources, so use a test account or non-production resources first. The scripts and READMEs in the numbered sections remain the source of truth; the skills contain generated copies.
+
 ## Prerequisites
 
 - A NetApp Console account with a deployed Console agent
@@ -22,8 +24,9 @@ Work through the sections in order the first time. Later sections assume the env
 | [03-add-ontap-to-canvas](03-add-ontap-to-canvas/README.md) | Add an on-premises ONTAP cluster to the canvas (needed as secondary target for disk-to-disk and 3-2-1 policies) |
 | [04-create-backup-target](04-create-backup-target/README.md) | Create an object-storage bucket as a backup target (ONTAP S3, AWS, Azure, StorageGRID, S3-compatible; needed before disk-to-object and 3-2-1 policies) and list the existing buckets |
 | [05-cluster-onboarding](05-cluster-onboarding/README.md) | Create an OCCM credential, install Trident Protect, list discovered Kubernetes clusters |
-| [06-protection-policies](06-protection-policies/README.md) | Create and delete protection policies (local snapshot, disk-to-object, disk-to-disk, 3-2-1 fan-out) for Azure, AWS S3, ONTAP S3 and StorageGRID (untested) targets |
-| [07-create-app](07-create-app/README.md) | Create a Kubernetes application and assign a protection policy to it |
+| [06-protection-policies](06-protection-policies/README.md) | Create, list and delete protection policies (local snapshot, disk-to-object, disk-to-disk, 3-2-1 fan-out) for Azure, AWS S3, ONTAP S3, S3-compatible and StorageGRID (untested) targets |
+| [07-create-app](07-create-app/README.md) | Create a Kubernetes application and assign a protection policy to it (optional), verify the first backup |
+| [skills](skills/README.md) | **Experimental.** Claude skills built from the sections above (`bnr-k8s-setup`, `bnr-k8s-policies`, `bnr-k8s-protect`), with a `sync.sh` that copies the scripts into them |
 | [lib](lib/bnr-common.sh) | Shared shell helpers used by the scripts |
 
 ## Conventions
@@ -43,3 +46,4 @@ See the [Contribution Guide](../README.md#contribution-guide) in the main README
 2. Note the date and Console/Trident Protect version you tested with.
 3. Mark untested commands clearly with "Untested" in the title.
 4. Run `shellcheck` on any `.sh` file.
+5. After changing scripts or READMEs that the skills use, run `skills/sync.sh` so the skill copies stay current, and update `skills/_shared/tested-status.md` when test results change.

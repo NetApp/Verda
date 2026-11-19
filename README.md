@@ -14,6 +14,7 @@ User contributions are welcome! See the [Contribution Guide](#contribution-guide
 | **Execution hook script templates** | [`script-templates/`](script-templates) | Starting points for writing your own hooks |
 | **Post-restore hooks** | [`URL-Rewrite/`](URL-Rewrite), [`Post-restore-scale/`](Post-restore-scale) | Adjust an application after a restore or clone |
 | **Backup and Recovery API automation** | [`BnR-API/`](BnR-API/README.md) | Example `curl`/`jq` commands and scripts to automate NetApp Backup and Recovery through the NetApp Console API, including protection policy creation and deletion |
+| **AI skills for Backup and Recovery (experimental)** | [`BnR-API/skills/`](BnR-API/skills/README.md) | Three Claude skills that drive the BnR-API scripts: setup, protection policies, and protecting applications. **Experimental** |
 
 ## Backup and Recovery API automation
 
@@ -21,9 +22,17 @@ The [`BnR-API`](BnR-API/README.md) folder collects example commands to automate 
 
 - [Authentication](BnR-API/00-authentication/README.md): create an access token from a refresh token
 - [Account discovery](BnR-API/01-account-discovery/README.md): find account, workspace/project and agent IDs
-- [Credentials and backup targets](BnR-API/02-credentials-and-targets): Azure, AWS S3, ONTAP S3 and StorageGRID
-- [Cluster onboarding](BnR-API/03-cluster-onboarding/README.md): OCCM credentials, Trident Protect installation, listing discovered clusters
-- [Protection policies](BnR-API/04-protection-policies/README.md): create and delete snapshot, backup, replication and 3-2-1 fan-out policies for Azure, AWS S3, ONTAP S3 and StorageGRID (untested) targets
+- [Credentials](BnR-API/02-credentials-and-targets/README.md): Azure, AWS S3, ONTAP S3, StorageGRID and S3-compatible
+- [ONTAP on the canvas](BnR-API/03-add-ontap-to-canvas/README.md) and [backup targets](BnR-API/04-create-backup-target/README.md): add an ONTAP system, create buckets and storage accounts
+- [Cluster onboarding](BnR-API/05-cluster-onboarding/README.md): OCCM credentials, Trident Protect installation, listing discovered clusters
+- [Protection policies](BnR-API/06-protection-policies/README.md): create, list and delete snapshot, backup, replication and 3-2-1 fan-out policies for Azure, AWS S3, ONTAP S3, S3-compatible and StorageGRID (untested) targets
+- [Applications](BnR-API/07-create-app/README.md): create an application and protect it, or protect it later
+
+### AI skills (experimental)
+
+> **Experimental.** The skills in [`BnR-API/skills`](BnR-API/skills/README.md) are still experimental. They let Claude run the scripts above for you and create or delete real cloud resources. Use a test account or non-production resources first and review every dry run.
+
+Three skills cover the workflow: `bnr-k8s-setup` (authentication, credentials, backup targets, cluster onboarding), `bnr-k8s-policies` (protection policies) and `bnr-k8s-protect` (create, protect and verify applications). See the [skills README](BnR-API/skills/README.md) for layout, installation and maintenance.
 
 ## Protecting applications with execution hooks
 
